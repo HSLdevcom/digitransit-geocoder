@@ -15,7 +15,7 @@ COPY setup.py requirements.txt /app/
 
 RUN pip3 install . -r requirements.txt
 
-COPY addresses.py mml.py osm_pbf.py palvelukartta.py docker.sh /app/
+COPY addresses.py mml.py osm_pbf.py palvelukartta.py stops.py docker.sh /app/
 
 COPY geocoding-data /app/geocoding-data/
 

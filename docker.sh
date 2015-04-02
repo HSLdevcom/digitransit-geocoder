@@ -12,4 +12,5 @@ sleep 15 && \
     ./addresses.py geocoding-data/PKS_avoin_osoiteluettelo.csv &&
     ./mml.py geocoding-data/SuomenKuntajako_2015_10k.xml &&
     ./osm_pbf.py geocoding-data/finland-latest.osm.pbf &&
-    ./palvelukartta.py geocoding-data/services.json
+    ./palvelukartta.py geocoding-data/services.json &&
+    ./stops.py geocoding-data/stops.txt
