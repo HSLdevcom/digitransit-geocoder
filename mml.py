@@ -47,11 +47,17 @@ def main():
 
     es.put_mapping(index=INDEX, doc_type=DOCTYPE,
                    mapping={"properties": {
-                       "location": {
+                       "boundaries": {
                            "type": "geo_shape"}}})
 
     for member in ElementTree.parse(sys.argv[1]).iter(GML_NS + 'featureMember'):
         # './/' is XPath for all desendants, not just direct children
+
+        # The data includes also regional areas, but we are only interested
+        # in municipalities.
+        if member.findtext('.//' + AU_NS + 'nationalLevel') != "4thOrder":
+            continue
+
         geom = member.find('.//' + GML_NS + 'MultiSurface')
         if not geom:
             # The file also includes boundaries between every neighbouring
@@ -71,7 +77,7 @@ def main():
         # Yes, it's hacky to convert to GeoJSON and then back, but ogr knows
         # what's valid GeoJSON better than we do, and pyelasticsearch wants
         # a Python dictionary
-        document = {'location': json.loads(ogr_geom.ExportToJson())}
+        document = {'boundaries': json.loads(ogr_geom.ExportToJson())}
 
         for name in member.iter(GN_NS + 'GeographicalName'):
             language = name.find(GN_NS + 'language').text
