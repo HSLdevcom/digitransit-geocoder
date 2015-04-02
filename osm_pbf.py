@@ -64,7 +64,7 @@ def relations_callback(relations):
                 print(osm_id)
 
 
-def print_municipialities():
+def print_municipalities():
     OSMParser(concurrency=4, nodes_callback=nodes_callback, relations_callback=relations_callback).parse(sys.argv[1])
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Read municipial boundaries from National Land Survey's GML (INSPIRE AU)
+Read municipal boundaries from National Land Survey's GML (INSPIRE AU)
 file and insert into Elasticsearch.
 """
 
@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 INDEX = 'reittiopas'
-DOCTYPE = 'municipiality'
+DOCTYPE = 'municipality'
 
 GML_NS = '{http://www.opengis.net/gml/3.2}'
 GN_NS = '{urn:x-inspire:specification:gmlas:GeographicalNames:3.0}'
@@ -55,7 +55,7 @@ def main():
         geom = member.find('.//' + GML_NS + 'MultiSurface')
         if not geom:
             # The file also includes boundaries between every neighbouring
-            # municipiality as LineStrings, which we ignore
+            # municipality as LineStrings, which we ignore
             if member.find('.//' + GML_NS + 'LineString'):
                 continue
             # We shouldn't encounter any other geometry types.
