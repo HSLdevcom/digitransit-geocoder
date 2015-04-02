@@ -61,7 +61,16 @@ def documents():  # Elasticsearch calls records documents
 
 def main():
     try:
-        es.create_index(index=INDEX)
+        es.create_index(index=INDEX, settings={
+            "analysis": {
+                "analyzer": {
+                    "myAnalyzer": {
+                        "type": "custom",
+                        "tokenizer": "keyword",
+                        "filter": ["myLowerCaseFilter"]}},
+                "filter": {
+                    "myLowerCaseFilter": {
+                        "type": "lowercase"}}}})
     except pyelasticsearch.exceptions.IndexAlreadyExistsError:
         pass
     try:
@@ -70,9 +79,17 @@ def main():
         pass  # Doesn't matter if we didn't actually delete anything
 
     es.put_mapping(index=INDEX, doc_type=DOCTYPE,
-                   mapping={"properties": {
-                       "location": {
-                           "type": "geo_point"}}})
+                   mapping={
+                       "properties": {
+                           "location": {
+                               "type": "geo_point"},
+                           "katunimi": {
+                               "type": "string",
+                               "analyzer": "keyword",
+                               "fields": {
+                                   "raw": {
+                                       "type": "string",
+                                       "analyzer": "myAnalyzer"}}}}})
 
     for chunk in pyelasticsearch.bulk_chunks(documents(), docs_per_chunk=500):
         es.bulk(chunk, doc_type=DOCTYPE, index=INDEX)

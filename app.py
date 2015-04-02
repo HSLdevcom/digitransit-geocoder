@@ -25,7 +25,9 @@ class Handler(RequestHandler):
 
     def on_response(self, response):
         if response.error:
-            logging.error(response.error)
+            logging.error(response)
+            logging.error(response.body.decode())
+            logging.error(response.request.body.decode())
             raise HTTPError(500)
         self.write(response.body)
         self.finish()
@@ -88,17 +90,31 @@ class ReverseHandler(Handler):
 
 def make_app():
     return Application(
-        [url(r"/suggest/(?P<streetname>.*)",
+        [url(r"/suggest/(?P<search_term>.*)",
              Handler,
-             {'template_string': '''{
-                 "query": {
-                     "prefix": {
-                         "katunimi": "{{ streetname }}"
-                     }
-                 },
-                 "aggs" : {
-                     "streets" : { "terms" : { "field" : "katunimi" } } } }''',
-              'url': "address/_search?pretty&size=5&search_type=count"}),
+             {'template_string':
+              '{"search_type" : "count"}\n'
+              '{"query": {'
+              '"wildcard": {'
+              '"raw": "*{{ search_term.lower() }}*"}},'
+              '"aggs": {'
+              '"streets": { "terms": { "field": "katunimi" }}}}\n'
+              '{}\n'
+              '{"query": {'
+              '"wildcard": {'
+              '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
+              '{}\n'
+              '{"query": {'
+              '"wildcard": {'
+              '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
+              '{"search_type" : "count"}\n'
+              '{"query": {'
+              '"fuzzy": {'
+              '"raw": "{{ search_term.lower() }}"}},'
+              '"aggs": {'
+              '"streets": { "terms": { "field": "katunimi" }}}}\n'
+              '\n',  # ES requires a blank line at the end (not documented)
+              'url': "_msearch?pretty&size=5"}),
          url(r"/search/(?P<streetname>.*)/(?P<streetnumber>.*)",
              Handler,
              {'template_string': '''{
