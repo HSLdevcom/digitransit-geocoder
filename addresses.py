@@ -18,6 +18,7 @@ for one number (for example "Ylästöntie 76a").
 """
 
 import csv
+import logging
 import sys
 
 import pyelasticsearch
@@ -31,6 +32,7 @@ out_projision = Proj(init='epsg:4326')
 INDEX = 'reittiopas'
 DOCTYPE = 'address'
 
+logging.basicConfig(level=logging.WARNING)
 es = pyelasticsearch.ElasticSearch('http://localhost:9200')
 
 
@@ -47,6 +49,13 @@ def documents():  # Elasticsearch calls records documents
                                          float(line['E']), float(line['N']))
             del line['N']
             del line['E']
+            if line['osoitenumero']:
+                line['osoitenumero'] = int(line['osoitenumero'])
+            else:
+                logging.warning("No streetnumber:")
+                logging.warning(line)
+            if line['osoitenumero2']:
+                line['osoitenumero2'] = int(line['osoitenumero2'])
             yield es.index_op(line)
 
 
