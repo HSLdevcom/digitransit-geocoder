@@ -92,8 +92,10 @@ def make_app():
     return Application(
         [url(r"/suggest/(?P<search_term>.*)",
              Handler,
-             # All queries are case insensitive
+             # _msearch allows multiple queries at the same time, but is very
+             # finicky about the format.
              {'url': "_msearch?pretty&size=5",
+              # All queries are case insensitive
               'template_string':
               # Find street names by matching correctly written part from anywhere,
               # ordered by number of addresses
@@ -129,7 +131,8 @@ def make_app():
               }),
          url(r"/search/(?P<streetname>.*)/(?P<streetnumber>.*)",
              Handler,
-             {'template_string': '''{
+             {'url': "address/_search?pretty&size=5",
+              'template_string': '''{
                  "query": { "filtered": {
                      "filter": {
                          "bool" : {
@@ -137,8 +140,8 @@ def make_app():
                                  {"term": { "katunimi": "{{ streetname }}"}},
                                  {"term": { "osoitenumero": {{ streetnumber }} }}
                              ]}
-              }}}}''',
-              'url': "address/_search?pretty&size=5"}),
+              }}}}'''
+             }),
          url(r"/reverse/(?P<lat>.*),(?P<lon>.*)",
              ReverseHandler)],
         debug=True)
