@@ -43,7 +43,7 @@ echo "Processing service data" &&
 ./palvelukartta.py /data/services.json
 
 echo "Updating GTFS data..."
-if [[ "$(curl -z /data/stops.txt --retry 5 -f http://koti.kapsi.fi/~hannes/gtfs/hsl.zip -o gtfs.zip -s -L -w %{http_code})" == "200" ]]; then
+if [[ "$(curl -z /data/stops.txt --retry 5 -f http://matka.hsl.fi/route-server/hsl.zip -o gtfs.zip -s -L -w %{http_code})" == "200" ]]; then
     unzip -DD gtfs.zip stops.txt &&
     mv stops.txt /data/ &&
     rm gtfs.zip &&
