@@ -61,19 +61,6 @@ def documents():  # Elasticsearch calls records documents
 
 def main():
     try:
-        es.create_index(index=INDEX, settings={
-            "analysis": {
-                "analyzer": {
-                    "myAnalyzer": {
-                        "type": "custom",
-                        "tokenizer": "keyword",
-                        "filter": ["myLowerCaseFilter"]}},
-                "filter": {
-                    "myLowerCaseFilter": {
-                        "type": "lowercase"}}}})
-    except pyelasticsearch.exceptions.IndexAlreadyExistsError:
-        pass
-    try:
         es.delete_all(index=INDEX, doc_type=DOCTYPE)
     except pyelasticsearch.exceptions.ElasticHttpNotFoundError:
         pass  # Doesn't matter if we didn't actually delete anything

@@ -7,7 +7,8 @@ RUN \
     apt-get update && \
     apt-get install -y default-jre elasticsearch \
         python3-gdal python3-dev python3-pip \
-        git libprotobuf-dev protobuf-compiler
+        git libprotobuf-dev protobuf-compiler \
+        unzip
 
 WORKDIR /app
 
@@ -15,14 +16,8 @@ COPY setup.py requirements.txt /app/
 
 RUN pip3 install . -r requirements.txt
 
-COPY addresses.py mml.py osm_pbf.py palvelukartta.py stops.py docker.sh /app/
+COPY app.py run-server.sh create_index.py addresses.py mml.py osm_pbf.py palvelukartta.py stops.py import-data.sh elastic-wait.sh /app/
 
-COPY geocoding-data /app/geocoding-data/
-
-RUN ["sh", "docker.sh"]
-
-COPY app.py run-server.sh /app/
-
-ENTRYPOINT ["/bin/sh", "run-server.sh"]
+CMD ["/bin/sh", "run-server.sh"]
 
 EXPOSE 8888
