@@ -92,7 +92,11 @@ def make_app():
     return Application(
         [url(r"/suggest/(?P<search_term>.*)",
              Handler,
-             {'template_string':
+             # All queries are case insensitive
+             {'url': "_msearch?pretty&size=5",
+              'template_string':
+              # Find street names by matching correctly written part from anywhere,
+              # ordered by number of addresses
               '{"search_type" : "count"}\n'
               '{"query": {'
               '"wildcard": {'
@@ -100,21 +104,29 @@ def make_app():
               '"aggs": {'
               '"streets": { "terms": { "field": "katunimi" }}}}\n'
               '{}\n'
+              # Find correctly written stops from names
               '{"query": {'
               '"wildcard": {'
               '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
               '{}\n'
+              # Find correctly written stops from descriptions
+              # (often crossing street name, or closest address)
               '{"query": {'
               '"wildcard": {'
               '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
               '{"search_type" : "count"}\n'
+              # Find incorrectly written street names with maximum Levenstein
+              # distance of 2 (hardcoded into Elasticsearch)
+              # XXX Would be nice if we could do a fuzzy wildcard search...
+              # http://www.elastic.co/guide/en/elasticsearch/reference/master/search-suggesters-completion.html
+              # allows at least fuzzy prefix suggestions
               '{"query": {'
               '"fuzzy": {'
               '"raw": "{{ search_term.lower() }}"}},'
               '"aggs": {'
               '"streets": { "terms": { "field": "katunimi" }}}}\n'
               '\n',  # ES requires a blank line at the end (not documented)
-              'url': "_msearch?pretty&size=5"}),
+              }),
          url(r"/search/(?P<streetname>.*)/(?P<streetnumber>.*)",
              Handler,
              {'template_string': '''{
