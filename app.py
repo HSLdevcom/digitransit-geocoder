@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import logging
 
 from jinja2 import Template
@@ -148,8 +149,13 @@ def make_app():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--port", type=int,
+                        help="TCP port to serve the API from", default=8888)
+    args = parser.parse_args()
+
     app = make_app()
-    app.listen(8888)
+    app.listen(args.port)
     IOLoop.current().start()
 
 
