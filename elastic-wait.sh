@@ -11,7 +11,7 @@
 
 while sleep 1
 do
-    if grep --quiet "recovered" /var/log/elasticsearch/elasticsearch.log
+    if grep --quiet "started" /var/log/elasticsearch/elasticsearch.log
     then
         exit 0
     fi
