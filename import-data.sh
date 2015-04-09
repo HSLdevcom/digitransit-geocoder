@@ -38,9 +38,17 @@ else
 fi
 
 echo "Downloading capital area service data..."
-curl --retry 5 -f www.hel.fi/palvelukarttaws/rest/v2/unit/ -o /data/services.json &&
+curl --retry 5 -f http://www.hel.fi/palvelukarttaws/rest/v2/unit/ -o /data/services.json &&
 echo "Processing service data" &&
 ./palvelukartta.py /data/services.json
+
+echo "Downloading lipas data..."
+curl --retry 5 -f "http://lipas.cc.jyu.fi:80/geoserver/lipas/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=lipas:lipas_kaikki_pisteet&outputFormat=SHAPE-ZIP" -o lipas.zip &&
+unzip -jDD lipas.zip &&
+rm wfsrequest.txt lipas.zip &&
+mv lipas_kaikki_pisteet.* /data/ &&
+echo "Processing lipas data" &&
+./lipas.py /data/lipas_kaikki_pisteet
 
 echo "Updating GTFS data..."
 if [[ "$(curl -z /data/stops.txt --retry 5 -f http://matka.hsl.fi/route-server/hsl.zip -o gtfs.zip -s -L -w %{http_code})" == "200" ]]; then

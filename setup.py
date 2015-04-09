@@ -71,6 +71,7 @@ setup(
         'defusedxml',  # For National LandSurvey GML data
         'imposm.parser',  # For OpenStreetMap
         'ijson',  # For capital area service map
+        'pyshp',  # For lipas
         'tornado', 'jinja2',  # For the web API
     ],
 
