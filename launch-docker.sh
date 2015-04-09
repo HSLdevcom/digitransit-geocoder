@@ -1,2 +1,2 @@
 #!/bin/sh
-docker run -ti --rm --volumes-from geocoding_data geocoder
+docker run -ti --rm -P --volumes-from geocoding_data geocoder
