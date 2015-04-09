@@ -18,6 +18,6 @@ RUN pip3 install . -r requirements.txt
 
 COPY app.py run-server.sh create_index.py addresses.py mml.py osm_pbf.py palvelukartta.py stops.py import-data.sh elastic-wait.sh /app/
 
-CMD ["/bin/sh", "run-server.sh"]
+CMD ["/bin/sh", "run-server.sh", 8888]
 
 EXPOSE 8888
