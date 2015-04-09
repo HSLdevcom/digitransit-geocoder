@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import logging
 
 from jinja2 import Template
@@ -30,7 +31,7 @@ class Handler(RequestHandler):
             logging.error(response.body.decode())
             logging.error(response.request.body.decode())
             raise HTTPError(500)
-        self.write(response.body)
+        self.write(self.transform_es(json.loads(response.body.decode('utf-8'))))
         if 'Origin' in self.request.headers:
             self.set_header('Access-Control-Allow-Origin', self.request.headers['Origin'])
         else:
@@ -38,8 +39,39 @@ class Handler(RequestHandler):
         self.set_header('Content-Type', 'application/json; charset="utf-8"')
         self.finish()
 
+    def transform_es(self, data):
+        """
+        Transform input data from ES as dict into output format dict.
+        """
+        return data
+
+
+class SuggestHandler(Handler):
+    """
+    Handler for autocomplete/typo fix suggestions
+    """
+
+    def transform_es(self, data):
+        r = data['responses']
+        stops = {}
+        for s in r[1]["hits"]["hits"] + r[2]["hits"]["hits"]:
+            if s["_id"] not in stops:
+                stops[s["_id"]] = s["_source"]
+        return {
+            'streetnames': r[0]["aggregations"]["streets"]["buckets"],
+            'fuzzy_streetnames': r[3]["aggregations"]["streets"]["buckets"],
+            'stops': list(stops.values())
+        }
+
 
 class ReverseHandler(Handler):
+    """
+    Handler for reverse geocoding requests (i.e. "What's the name for these coordinates")
+
+    The answer depends on the zoom level. Zoomed out, the user cannot pinpoint addresses,
+    so return just the city. Closer, search for nearest address.
+    """
+
     def initialize(self):
         pass
 
@@ -93,11 +125,14 @@ class ReverseHandler(Handler):
                    body=template.render(kwargs),
                    callback=self.on_response)
 
+    def transform_es(self, data):
+        return data["hits"]["hits"][0]["_source"]
+
 
 def make_app():
     return Application(
         [url(r"/suggest/(?P<search_term>.*)",
-             Handler,
+             SuggestHandler,
              # _msearch allows multiple queries at the same time, but is very
              # finicky about the format.
              {'url': "_msearch?pretty&size=5",
