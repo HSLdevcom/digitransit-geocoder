@@ -31,6 +31,11 @@ class Handler(RequestHandler):
             logging.error(response.request.body.decode())
             raise HTTPError(500)
         self.write(response.body)
+        if 'Origin' in self.request.headers:
+            self.set_header('Access-Control-Allow-Origin', self.request.headers['Origin'])
+        else:
+            self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Content-Type', 'application/json; charset="utf-8"')
         self.finish()
 
 
@@ -142,7 +147,7 @@ def make_app():
                                  {"term": { "osoitenumero": {{ streetnumber }} }}
                              ]}
               }}}}'''
-             }),
+              }),
          url(r"/reverse/(?P<lat>.*),(?P<lon>.*)",
              ReverseHandler)],
         debug=True)
