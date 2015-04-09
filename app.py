@@ -135,7 +135,7 @@ def make_app():
              SuggestHandler,
              # _msearch allows multiple queries at the same time, but is very
              # finicky about the format.
-             {'url': "_msearch?pretty&size=5",
+             {'url': "_msearch",
               # All queries are case insensitive
               'template_string':
               # Find street names by matching correctly written part from anywhere,
@@ -145,16 +145,20 @@ def make_app():
               '"wildcard": {'
               '"raw": "*{{ search_term.lower() }}*"}},'
               '"aggs": {'
-              '"streets": { "terms": { "field": "katunimi" }}}}\n'
+              '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
               '{}\n'
               # Find correctly written stops from names
-              '{"query": {'
+              '{'
+              '"size": 20,'
+              '"query": {'
               '"wildcard": {'
               '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
               '{}\n'
               # Find correctly written stops from descriptions
               # (often crossing street name, or closest address)
-              '{"query": {'
+              '{'
+              '"size": 20,'
+              '"query": {'
               '"wildcard": {'
               '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
               '{"search_type" : "count"}\n'
@@ -167,12 +171,12 @@ def make_app():
               '"fuzzy": {'
               '"raw": "{{ search_term.lower() }}"}},'
               '"aggs": {'
-              '"streets": { "terms": { "field": "katunimi" }}}}\n'
+              '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
               '\n',  # ES requires a blank line at the end (not documented)
               }),
          url(r"/search/(?P<streetname>.*)/(?P<streetnumber>.*)",
              Handler,
-             {'url': "address/_search?pretty&size=5",
+             {'url': "address/_search?pretty&size=20",
               'template_string': '''{
                  "query": { "filtered": {
                      "filter": {
