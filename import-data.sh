@@ -24,7 +24,7 @@ if [[ "$(curl -z /data/kuntajako.xml --retry 5 -f http://kartat.kapsi.fi/files/k
     unzip -jDD kuntajako.zip TietoaKuntajaosta_2015_10k/SuomenKuntajako_2015_10k.xml &&
     mv SuomenKuntajako_2015_10k.xml /data/kuntajako.xml &&
     rm kuntajako.zip &&
-    ./mml.py /data/kuntajako.xml
+    ./mml_municipalities.py /data/kuntajako.xml
 else
     echo -e "\tNo new data available"
 fi
@@ -60,3 +60,13 @@ if [[ "$(curl -z /data/stops.txt --retry 5 -f http://matka.hsl.fi/route-server/h
 else
     echo -e "\tNo new data available"
 fi
+
+echo "Updating NLS data..."
+mkdir -p /data/nls
+pushd /data/nls
+TIME=$((find . -type f -printf '%T@ %p\n' | egrep '.*' || echo 0) | sort -n | tail -1 | cut -f1 -d" ")
+wget -r -np -nd -l1 -N http://kartat.kapsi.fi/files/maastotietokanta/tiesto_osoitteilla/etrs89/gml/ &&
+rm index.html* &&
+popd &&
+echo "Processing NLS data" &&
+find /data/nls -type f -newermt @$TIME -exec ./mml_addresses.py {} +

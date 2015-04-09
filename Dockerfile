@@ -16,7 +16,7 @@ COPY setup.py requirements.txt /app/
 
 RUN pip3 install . -r requirements.txt
 
-COPY app.py run-server.sh create_index.py addresses.py mml.py osm_pbf.py palvelukartta.py stops.py lipas.py import-data.sh elastic-wait.sh /app/
+COPY app.py run-server.sh create_index.py addresses.py mml_municipalities.py mml_addresses.py osm_pbf.py palvelukartta.py stops.py lipas.py import-data.sh elastic-wait.sh /app/
 
 CMD ["/bin/sh", "run-server.sh", 8888]
 

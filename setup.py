@@ -72,6 +72,7 @@ setup(
         'imposm.parser',  # For OpenStreetMap
         'ijson',  # For capital area service map
         'pyshp',  # For lipas
+        'shapely',  # For NLS addresses
         'tornado', 'jinja2',  # For the web API
     ],
 

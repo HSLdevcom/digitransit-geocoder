@@ -4,6 +4,7 @@ import json
 import logging
 
 from jinja2 import Template
+from shapely.geometry import LineString
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous, HTTPError
@@ -18,9 +19,8 @@ class Handler(RequestHandler):
 
     @asynchronous
     def get(self, **kwargs):
-        http = AsyncHTTPClient()
         template = Template(self.template_string)
-        http.fetch(ES_URL + self.url,
+        AsyncHTTPClient().fetch(ES_URL + self.url,
                    allow_nonstandard_methods=True,
                    body=template.render(kwargs),
                    callback=self.on_response)
@@ -78,7 +78,6 @@ class ReverseHandler(Handler):
     @asynchronous
     def get(self, **kwargs):
         zoom = int(self.get_argument('zoom', default="8"))
-        http = AsyncHTTPClient()
         if zoom >= 8:
             url = "address/_search?pretty&size=1"
             template = Template('''{
@@ -120,13 +119,53 @@ class ReverseHandler(Handler):
                 }
             }}''')
 
-        http.fetch(ES_URL + url,
+        AsyncHTTPClient().fetch(ES_URL + url,
                    allow_nonstandard_methods=True,
                    body=template.render(kwargs),
                    callback=self.on_response)
 
     def transform_es(self, data):
         return data["hits"]["hits"][0]["_source"]
+
+
+class InterpolateHandler(Handler):
+    def initialize(self):
+        pass
+
+    @asynchronous
+    def get(self, streetname, streetnumber):
+        self.streetnumber = int(streetnumber)
+        if self.streetnumber % 2 == 0:
+            self.side = "vasen"
+        else:
+            self.side = "oikea"
+        url = "interpolated_address/_search?pretty&size=20"
+        template = Template('''{
+                 "query": { "filtered": {
+                     "filter": {
+                         "bool" : {
+                             "must" : [
+                                 {"term": {"nimi": "{{ streetname }}"}},
+                                 {"range":
+                                    {"min_{{ side }}": {"lte" : {{ streetnumber }} }}},
+                                 {"range":
+                                    {"max_{{ side }}": {"gte" : {{ streetnumber }} }}}]}
+
+              }}}}''')
+        AsyncHTTPClient().fetch(ES_URL + url,
+                   allow_nonstandard_methods=True,
+                   body=template.render({'streetname': streetname,
+                                         'streetnumber': streetnumber,
+                                         'side': self.side}),
+                   callback=self.on_response)
+
+    def transform_es(self, data):
+        street = data["hits"]["hits"][0]["_source"]
+        fraction = (self.streetnumber - int(street["min_" + self.side])) / \
+                   (int(street["max_" + self.side]) - int(street["min_" + self.side]))
+        return {'coordinates': list(LineString(street['location']['coordinates']).interpolate(fraction, normalized=True).coords)}
+
+
 
 
 def make_app():
@@ -187,6 +226,8 @@ def make_app():
                              ]}
               }}}}'''
               }),
+         url(r"/interpolate/(?P<streetname>.*)/(?P<streetnumber>.*)",
+             InterpolateHandler),
          url(r"/reverse/(?P<lat>.*),(?P<lon>.*)",
              ReverseHandler)],
         debug=True)
