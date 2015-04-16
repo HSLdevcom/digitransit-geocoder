@@ -16,7 +16,6 @@ from osgeo import ogr, osr
 import pyelasticsearch
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler())
 
 INDEX = 'reittiopas'
@@ -30,9 +29,6 @@ target = osr.SpatialReference()
 target.ImportFromEPSG(4326)  # WGS84
 transform = osr.CoordinateTransformation(source, target)
 
-# Right now numbers greater than 256 have no effect, because imposm parser does not return bigger batches
-BULK_SIZE = 256
-
 es = pyelasticsearch.ElasticSearch('http://localhost:9200')
 
 
@@ -44,63 +40,79 @@ def main():
                         help='XML or zips containing XML files to process')
     args = parser.parse_args()
     if args.verbose == 1:
-        # XXX pyelasticsearch outputs everything it indexes at INFO level...
-        #     and that's way too much info
-        logging.basicConfig(level=logging.INFO)
+        logger.setLevel(logging.INFO)
     elif args.verbose == 2:
-        logging.basicConfig(level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
 
     try:
         es.create_index(index=INDEX)
     except pyelasticsearch.exceptions.IndexAlreadyExistsError:
         pass
-    try:
-        es.delete_all(index=INDEX, doc_type=DOCTYPE)
-    except pyelasticsearch.exceptions.ElasticHttpNotFoundError:
-        pass  # Doesn't matter if we didn't actually delete anything
 
     es.put_mapping(index=INDEX, doc_type=DOCTYPE,
                    mapping={"properties": {
                        "location": {
-                           "type": "geo_shape"}}})
-    for chunk in pyelasticsearch.bulk_chunks(documents(args.filenames), docs_per_chunk=BULK_SIZE):
+                           "type": "geo_shape"},
+                       "filename": {
+                           "type": "string",
+                           "analyzer": "keyword"}}})
+
+    for chunk in pyelasticsearch.bulk_chunks(documents(args.filenames), docs_per_chunk=500):
         es.bulk(chunk, doc_type=DOCTYPE, index=INDEX)
 
 
 def documents(filenames):
     for i in filenames:
-        logging.info('Prosessing file %s', i)
+        logger.info('Prosessing file %s', i)
         if i[-4:] == ".zip":
             with ZipFile(i) as z:
                 for j in z.namelist():
-                    yield from read_file(z.open(j))
+                    with z.open(j) as f:
+                        yield from read_file(f, j)
         else:
-            yield from read_file(i)
+            with open(i) as f:
+                yield from read_file(f, i)
 
 
 def _not_zero_or_none(a):
     return a is not '0' and a is not None
 
 
-def read_file(filename):
+def read_file(file, filename):
+    # Delete all documents from this map tile (the NLS data is divided into files by tile)
+    es.delete_by_query(index=INDEX, doc_type=DOCTYPE, query="filename:%s" % filename)
+    et = ElementTree.parse(file)
     # Find all elements with child 'minOsoitenumeroVasen'
-    et = ElementTree.parse(filename)
     for line in et.iterfind('.//' + NLS_NS + 'Tieviiva'):
-        doc = {}
+        doc = {'filename': filename}
         # Some road parts have only either left or right side
-        if _not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroVasen')):
-            doc['min_vasen'] = int(line.findtext('.//' + NLS_NS +
-                                                 'minOsoitenumeroVasen')),
-            doc['max_vasen'] = int(line.findtext('.//' + NLS_NS +
-                                                 'maxOsoitenumeroVasen')),
-        if _not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroOikea')):
-            doc['min_oikea'] = int(line.findtext('.//' + NLS_NS +
-                                                 'minOsoitenumeroOikea')),
-            doc['max_oikea'] = int(line.findtext('.//' + NLS_NS +
-                                                 'maxOsoitenumeroOikea')),
-        # But some parts of the roads do not have any addresses
+        if (_not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroVasen')) or
+            _not_zero_or_none(line.findtext('.//' + NLS_NS + 'maxOsoitenumeroVasen'))):
+            if (_not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroVasen')) and
+                _not_zero_or_none(line.findtext('.//' + NLS_NS + 'maxOsoitenumeroVasen'))):
+                doc['min_vasen'] = int(line.findtext('.//' + NLS_NS +
+                                                     'minOsoitenumeroVasen')),
+                doc['max_vasen'] = int(line.findtext('.//' + NLS_NS +
+                                                     'maxOsoitenumeroVasen')),
+            else:
+                logger.error('%s has min or max data for left side, but not both',
+                              line.get('gid'))
+                continue
+        if (_not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroOikea')) or
+            _not_zero_or_none(line.findtext('.//' + NLS_NS + 'maxOsoitenumeroOikea'))):
+            if (_not_zero_or_none(line.findtext('.//' + NLS_NS + 'minOsoitenumeroOikea')) and
+                _not_zero_or_none(line.findtext('.//' + NLS_NS + 'maxOsoitenumeroOikea'))):
+                doc['min_oikea'] = int(line.findtext('.//' + NLS_NS +
+                                                     'minOsoitenumeroOikea')),
+                doc['max_oikea'] = int(line.findtext('.//' + NLS_NS +
+                                                     'maxOsoitenumeroOikea')),
+            else:
+                logger.error('%s has min or max data for right side, but not both',
+                              line.get('gid'))
+                continue
+        # Some parts of the roads do not have any addresses
         if 'min_vasen' not in doc and 'min_oikea' not in doc:
-            logging.debug('No address data found for %s', line.get('gid'))
+            logger.debug('No address data found for %s', line.get('gid'))
             continue
 
         if line.findtext('.//' + NLS_NS + 'nimi_ruotsi') is not None:
@@ -109,7 +121,7 @@ def read_file(filename):
             doc['nimi'] = line.findtext('.//' + NLS_NS + 'nimi_suomi')
         # This shouldn't happen of course, but data can be bad
         if 'namn' not in doc and 'nimi' not in doc:
-            logging.error('No name found for %s', line.get('gid'))
+            logger.error('No name found for %s', line.get('gid'))
             continue
         # If one language is missing, fill it from the other so that we can
         # always search only in the user's main language
@@ -140,7 +152,7 @@ def read_file(filename):
             doc['nimi'] = line.findtext('.//' + NLS_NS + 'nimi_suomi')
         # This shouldn't happen of course, but data can be bad
         if 'namn' not in doc and 'nimi' not in doc:
-            logging.error('No name found for %s', line.get('gid'))
+            logger.error('No name found for %s', line.get('gid'))
             continue
 
         geom = line.find('.//{http://www.opengis.net/gml}pos')

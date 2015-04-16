@@ -160,10 +160,16 @@ class InterpolateHandler(Handler):
                    callback=self.on_response)
 
     def transform_es(self, data):
-        street = data["hits"]["hits"][0]["_source"]
-        fraction = (self.streetnumber - int(street["min_" + self.side])) / \
-                   (int(street["max_" + self.side]) - int(street["min_" + self.side]))
-        return {'coordinates': list(LineString(street['location']['coordinates']).interpolate(fraction, normalized=True).coords)}
+        logging.debug(data)
+        if data["hits"]["hits"]:
+            street = data["hits"]["hits"][0]["_source"]
+            if street["max_" + self.side][0] == street["min_" + self.side][0]:
+                fraction = 0.5
+            else:
+                fraction = (self.streetnumber - int(street["min_" + self.side][0])) / \
+                           (int(street["max_" + self.side][0]) - int(street["min_" + self.side][0]))
+            return {'coordinates': list(LineString(street['location']['coordinates']).interpolate(fraction, normalized=True).coords)}
+        return {}  # No results found
 
 
 
@@ -237,7 +243,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", type=int,
                         help="TCP port to serve the API from", default=8888)
+    parser.add_argument("-v", "--verbose", action='count',
+                        help="Use once for info, twice for more")
     args = parser.parse_args()
+    if args.verbose == 1:
+        logging.basicConfig(level=logging.INFO)
+    elif args.verbose == 2:
+        logging.basicConfig(level=logging.DEBUG)
 
     app = make_app()
     app.listen(args.port)
