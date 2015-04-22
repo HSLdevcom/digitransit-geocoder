@@ -57,8 +57,11 @@ class SuggestHandler(Handler):
         for s in r[1]["hits"]["hits"] + r[2]["hits"]["hits"]:
             if s["_id"] not in stops:
                 stops[s["_id"]] = s["_source"]
+        streetnames = {}
+        for s in r[0]["aggregations"]["streets"]["buckets"]:
+            streetnames[s["key"]] = s["cities"]["buckets"]
         return {
-            'streetnames': r[0]["aggregations"]["streets"]["buckets"],
+            'streetnames': streetnames,
             'fuzzy_streetnames': r[3]["aggregations"]["streets"]["buckets"],
             'stops': list(stops.values())
         }
@@ -190,7 +193,9 @@ def make_app():
               '"wildcard": {'
               '"raw": "*{{ search_term.lower() }}*"}},'
               '"aggs": {'
-              '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
+              '"streets": { "terms": { "field": "katunimi", "size": 20 },'
+                         '"aggs": {"cities":'
+                                   '{"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
               '{}\n'
               # Find correctly written stops from names
               '{'
