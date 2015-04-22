@@ -229,6 +229,21 @@ def make_app():
               '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
               '\n',  # ES requires a blank line at the end (not documented)
               }),
+         # The URL regexps are searched in order, so more specific URLs must come first
+         url(r"/search/(?P<city>.*)/(?P<streetname>.*)/(?P<streetnumber>.*)",
+             SearchHandler,
+             {'url': "address/_search?pretty&size=20",
+              'template_string': '''{
+                 "query": { "filtered": {
+                     "filter": {
+                         "bool" : {
+                             "must" : [
+                                 {"term": { "kaupunki": "{{ city.lower() }}"}},
+                                 {"term": { "katunimi": "{{ streetname }}"}},
+                                 {"term": { "osoitenumero": {{ streetnumber }} }}
+                             ]}
+              }}}}'''
+              }),
          url(r"/search/(?P<city>.*)/(?P<streetname>.*)",
              SearchHandler,
              {'url': "address/_search?pretty&size=2000",
@@ -239,20 +254,6 @@ def make_app():
                              "must" : [
                                  {"term": { "kaupunki": "{{ city.lower() }}"}},
                                  {"term": { "katunimi": "{{ streetname }}"}}
-                             ]}
-              }}}}'''
-              }),
-         url(r"/search/(?P<city>.*)/(?P<streetname>.*)/(?P<streetnumber>.*)",
-             SearchHandler,
-             {'url': "address/_search?pretty&size=20",
-              'template_string': '''{
-                 "query": { "filtered": {
-                     "filter": {
-                         "bool" : {
-                             "must" : [
-                                 {"term": { "kaupunki": "{{ city }}"}},
-                                 {"term": { "katunimi": "{{ streetname }}"}},
-                                 {"term": { "osoitenumero": {{ streetnumber }} }}
                              ]}
               }}}}'''
               }),
