@@ -46,6 +46,11 @@ class Handler(RequestHandler):
         return data
 
 
+class SearchHandler(Handler):
+    def transform_es(self, data):
+        return {'results': list(map(lambda x: x['_source'], data["hits"]["hits"]))}
+
+
 class SuggestHandler(Handler):
     """
     Handler for autocomplete/typo fix suggestions
@@ -224,14 +229,28 @@ def make_app():
               '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
               '\n',  # ES requires a blank line at the end (not documented)
               }),
-         url(r"/search/(?P<streetname>.*)/(?P<streetnumber>.*)",
-             Handler,
+         url(r"/search/(?P<city>.*)/(?P<streetname>.*)",
+             SearchHandler,
+             {'url': "address/_search?pretty&size=2000",
+              'template_string': '''{
+                 "query": { "filtered": {
+                     "filter": {
+                         "bool" : {
+                             "must" : [
+                                 {"term": { "kaupunki": "{{ city.lower() }}"}},
+                                 {"term": { "katunimi": "{{ streetname }}"}}
+                             ]}
+              }}}}'''
+              }),
+         url(r"/search/(?P<city>.*)/(?P<streetname>.*)/(?P<streetnumber>.*)",
+             SearchHandler,
              {'url': "address/_search?pretty&size=20",
               'template_string': '''{
                  "query": { "filtered": {
                      "filter": {
                          "bool" : {
                              "must" : [
+                                 {"term": { "kaupunki": "{{ city }}"}},
                                  {"term": { "katunimi": "{{ streetname }}"}},
                                  {"term": { "osoitenumero": {{ streetnumber }} }}
                              ]}
