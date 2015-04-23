@@ -8,7 +8,6 @@ interpolate and insert into Elasticsearch.
 import argparse
 import json
 import logging
-import sys
 from zipfile import ZipFile
 
 from defusedxml import ElementTree
@@ -76,8 +75,6 @@ def documents(filenames):
 
 def _not_zero_or_none(a):
     return a is not '0' and a is not None
-
-
 def read_file(file, filename):
     # Delete all documents from this map tile (the NLS data is divided into files by tile)
     es.delete_by_query(index=INDEX, doc_type=DOCTYPE, query="filename:%s" % filename)

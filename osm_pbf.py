@@ -10,6 +10,9 @@ import sys
 import pyelasticsearch
 from imposm.parser import OSMParser
 from shapely.geometry.polygon import Polygon
+from shapely.geometry.point import Point
+
+import mml_municipalities
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
@@ -29,6 +32,10 @@ relations = {}
 ways = {}
 addresses = {}
 coords = {}
+
+municipalities = []
+for m in mml_municipalities.parse(sys.argv[2]):
+    municipalities.append((m['nimi'], Polygon(m['boundaries']['coordinates'][0][0])))
 
 def send_bulk(operations, doctype):
     try:
@@ -96,8 +103,14 @@ def ways_callback(new_ways):
                 break
 
 
-def add_address(street, number, location, unit=None, main=False):
-    address = (street, number, unit)
+def add_address(street, number, location, unit=None, main=False, municipality=None):
+    if not municipality:
+        p = Point(*location)
+        for name, geom in municipalities:
+            if geom.contains(p):
+                municipality = name
+                break
+    address = (municipality, street, number, unit)
     if address in addresses:
         if main:
             logging.info("Overriding existing address %s with main entrance %s at %s",
@@ -111,6 +124,8 @@ def add_address(street, number, location, unit=None, main=False):
                           addresses[address], address, location)
         return
     addresses[address] = location
+
+
 
 
 def get_unit(tags):
@@ -141,7 +156,14 @@ def main():
                        mapping={"date_detection": False,
                                 "properties": {
                                     "location": {
-                                        "type": "geo_point"}}})
+                                        "type": "geo_point"},
+                                    "street": {
+                                        "type": "string",
+                                        "analyzer": "keyword",
+                                        "fields": {
+                                            "raw": {
+                                                "type": "string",
+                                                "analyzer": "myAnalyzer"}}}}})
 
     OSMParser(concurrency=4,
               coords_callback=coords_callback,
@@ -230,8 +252,9 @@ def main():
             logger.info('Way with addressdata but no street or housenumber: %s', id)
 
     operations = []
-    for (street, number, unit), lonlat in addresses.items():
-        operations.append(es.index_op({'street': street,
+    for (municipality, street, number, unit), lonlat in addresses.items():
+        operations.append(es.index_op({'municipality': municipality,
+                                       'street': street,
                                        'number': number,
                                        'unit': unit,
                                        'location': lonlat}))

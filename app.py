@@ -46,6 +46,31 @@ class Handler(RequestHandler):
         return data
 
 
+class StreetSearchHandler(Handler):
+    def transform_es(self, data):
+        addresses = {}
+        for a in list(map(lambda x: x['_source'], data['responses'][1]["hits"]["hits"])):
+            addresses[(a['municipality'], a['street'], a['number'])] = {
+                'municipality': a['municipality'],
+                'street': a['street'],
+                'number': a['number'],
+                'unit': a['unit']
+            }
+        for a in list(map(lambda x: x['_source'], data['responses'][0]["hits"]["hits"])):
+            id = (a['kaupunki'], a['katunimi'], str(a['osoitenumero']))
+            if id not in addresses:
+                addresses[id] = {
+                    'municipality': a['kaupunki'],
+                    'street': a['katunimi'],
+                    'number': str(a['osoitenumero']),
+                    'unit': None
+                }
+            else:
+                logging.info('Returning OSM address instead of official: %s', id)
+
+        return {'results': list(addresses.values())}
+
+
 class SearchHandler(Handler):
     def transform_es(self, data):
         return {'results': list(map(lambda x: x['_source'], data["hits"]["hits"]))}
@@ -231,18 +256,30 @@ def make_app():
               }),
          # The URL regexps are searched in order, so more specific URLs must come first
          url(r"/search/(?P<city>.*)/(?P<streetname>.*)/(?P<streetnumber>.*)",
-             SearchHandler,
-             {'url': "address/_search?pretty&size=20",
-              'template_string': '''{
-                 "query": { "filtered": {
-                     "filter": {
-                         "bool" : {
-                             "must" : [
-                                 {"term": { "kaupunki": "{{ city.lower() }}"}},
-                                 {"term": { "katunimi": "{{ streetname }}"}},
-                                 {"term": { "osoitenumero": {{ streetnumber }} }}
-                             ]}
-              }}}}'''
+             StreetSearchHandler,
+             {'url': "_msearch",
+              'template_string':
+              '{}\n'
+              '{"query": { "filtered": {'
+                     '"filter": {'
+                         '"bool" : {'
+                             '"must" : ['
+                                 '{"term": { "kaupunki": "{{ city.lower() }}"}},'
+                                 '{"term": { "katunimi": "{{ streetname.title() }}"}},'
+                                 '{"term": { "osoitenumero": {{ streetnumber }} }}'
+                             ']}'
+              '}}}}\n'
+              '{}\n'
+              '{"query": { "filtered": {'
+                     '"filter": {'
+                         '"bool" : {'
+                             '"must" : ['
+                                 '{"term": { "municipality": "{{ city.lower() }}"}},'
+                                 '{"term": { "street": "{{ streetname.title() }}"}},'
+                                 '{"term": { "number": {{ streetnumber }} }}'
+                             ']}'
+              '}}}}\n'
+              '\n'
               }),
          url(r"/search/(?P<city>.*)/(?P<streetname>.*)",
              SearchHandler,
@@ -253,7 +290,7 @@ def make_app():
                          "bool" : {
                              "must" : [
                                  {"term": { "kaupunki": "{{ city.lower() }}"}},
-                                 {"term": { "katunimi": "{{ streetname }}"}}
+                                 {"term": { "katunimi": "{{ streetname.title() }}"}}
                              ]}
               }}}}'''
               }),

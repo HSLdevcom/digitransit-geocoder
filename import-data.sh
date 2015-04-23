@@ -32,7 +32,7 @@ fi
 echo "Updating OpenStreetMap data..."
 if [[ "$(curl -z /data/finland-latest.osm.pbf --retry 5 -f http://download.geofabrik.de/europe/finland-latest.osm.pbf -o /data/finland-latest.osm.pbf -s -L -w %{http_code})" == "200" ]]; then
     echo "Processing OpenStreetMap data"
-    ./osm_pbf.py /data/finland-latest.osm.pbf
+    ./osm_pbf.py /data/finland-latest.osm.pbf /data/kuntajako.xml
 else
     echo -e "\tNo new data available"
 fi

@@ -34,23 +34,8 @@ transform = osr.CoordinateTransformation(source, target)
 BULK_SIZE = 256
 
 
-def main():
-    es = pyelasticsearch.ElasticSearch('http://localhost:9200')
-    try:
-        es.create_index(index=INDEX)
-    except pyelasticsearch.exceptions.IndexAlreadyExistsError:
-        pass
-    try:
-        es.delete_all(index=INDEX, doc_type=DOCTYPE)
-    except pyelasticsearch.exceptions.ElasticHttpNotFoundError:
-        pass  # Doesn't matter if we didn't actually delete anything
-
-    es.put_mapping(index=INDEX, doc_type=DOCTYPE,
-                   mapping={"properties": {
-                       "boundaries": {
-                           "type": "geo_shape"}}})
-
-    for member in ElementTree.parse(sys.argv[1]).iter(GML_NS + 'featureMember'):
+def parse(filename):
+    for member in ElementTree.parse(filename).iter(GML_NS + 'featureMember'):
         # './/' is XPath for all desendants, not just direct children
 
         # The data includes also regional areas, but we are only interested
@@ -88,7 +73,26 @@ def main():
                 document['namn'] = name_text
             else:
                 raise Exception("Unknown language found")
+        yield document
 
+
+def main():
+    es = pyelasticsearch.ElasticSearch('http://localhost:9200')
+    try:
+        es.create_index(index=INDEX)
+    except pyelasticsearch.exceptions.IndexAlreadyExistsError:
+        pass
+    try:
+        es.delete_all(index=INDEX, doc_type=DOCTYPE)
+    except pyelasticsearch.exceptions.ElasticHttpNotFoundError:
+        pass  # Doesn't matter if we didn't actually delete anything
+
+    es.put_mapping(index=INDEX, doc_type=DOCTYPE,
+                   mapping={"properties": {
+                       "boundaries": {
+                           "type": "geo_shape"}}})
+
+    for document in parse(sys.argv[1]):
         try:
             es.index(index=INDEX, doc_type=DOCTYPE, doc=document)
         except pyelasticsearch.exceptions.ElasticHttpError as e:
