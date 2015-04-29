@@ -28,7 +28,8 @@ class Handler(RequestHandler):
     def on_response(self, response):
         if response.error:
             logging.error(response)
-            logging.error(response.body.decode())
+            if response.body:
+                logging.error(response.body.decode())
             logging.error(response.request.body.decode())
             raise HTTPError(500)
         self.write(self.transform_es(json.loads(response.body.decode('utf-8'))))
@@ -54,7 +55,8 @@ class StreetSearchHandler(Handler):
                 'municipality': a['municipality'],
                 'street': a['street'],
                 'number': a['number'],
-                'unit': a['unit']
+                'unit': a['unit'],
+                'location': a['location'],
             }
         for a in list(map(lambda x: x['_source'], data['responses'][0]["hits"]["hits"])):
             id = (a['kaupunki'], a['katunimi'], str(a['osoitenumero']))
@@ -63,7 +65,8 @@ class StreetSearchHandler(Handler):
                     'municipality': a['kaupunki'],
                     'street': a['katunimi'],
                     'number': str(a['osoitenumero']),
-                    'unit': None
+                    'unit': None,
+                    'location': a['location'],
                 }
             else:
                 logging.info('Returning OSM address instead of official: %s', id)
