@@ -8,7 +8,8 @@ RUN \
     apt-get install -y default-jre elasticsearch \
         python3-gdal python3-dev python3-pip \
         git libprotobuf-dev protobuf-compiler \
-        unzip
+        unzip && \
+    echo "discovery.zen.ping.multicast.enabled: false" >> /etc/elasticsearch/elasticsearch.yml
 
 WORKDIR /app
 
