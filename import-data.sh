@@ -27,7 +27,7 @@ else
     echo -e "\tNo new data available"
 fi
 
-echo "Updating municipal data..."
+echo "Updating NLS municipal data..."
 if [[ "$(curl -z /data/kuntajako.xml --retry 5 -f http://kartat.kapsi.fi/files/kuntajako/kuntajako_10k/etrs89/gml/TietoaKuntajaosta_2015_10k.zip -o kuntajako.zip -s -L -w %{http_code})" == "200" ]] &&
       unzip -jDD kuntajako.zip TietoaKuntajaosta_2015_10k/SuomenKuntajako_2015_10k.xml &&
       mv SuomenKuntajako_2015_10k.xml /data/kuntajako.xml &&
@@ -69,12 +69,14 @@ else
     echo -e "\tNo new data available"
 fi
 
-echo "Updating NLS data..."
+echo "Updating NLS road data..."
 mkdir -p /data/nls
 pushd /data/nls
 TIME=$((find . -type f -printf '%T@ %p\n' | egrep '.*' || echo 0) | sort -n | tail -1 | cut -f1 -d" ")
-wget -r -np -nd -l1 -N http://kartat.kapsi.fi/files/maastotietokanta/tiesto_osoitteilla/etrs89/gml/ &&
+wget -r -np -nd -l1 -N --no-verbose http://kartat.kapsi.fi/files/maastotietokanta/tiesto_osoitteilla/etrs89/gml/ &&
 rm index.html* &&
 popd &&
-echo "Processing NLS data" &&
+echo "Processing NLS road data" &&
 find /data/nls -type f -newermt @$TIME -exec ./mml_addresses.py {} +
+
+echo Done

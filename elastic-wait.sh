@@ -1,6 +1,6 @@
 #!/bin/bash
 
-/usr/share/elasticsearch/bin/elasticsearch \
+ES_HEAP_SIZE=4g /usr/share/elasticsearch/bin/elasticsearch \
     -p /var/run/elasticsearch.pid \
     --default.config=/etc/elasticsearch/elasticsearch.yml \
     --default.path.home=/usr/share/elasticsearch \
