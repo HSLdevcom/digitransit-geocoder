@@ -14,7 +14,7 @@ es = pyelasticsearch.ElasticSearch('http://localhost:9200')
 
 
 def documents():  # Elasticsearch calls records documents
-    with open(sys.argv[1], encoding='latin-1') as csvfile:
+    with open(sys.argv[1], encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
         for line in reader:
             line['location'] = (float(line['stop_lon']), float(line['stop_lat']))
