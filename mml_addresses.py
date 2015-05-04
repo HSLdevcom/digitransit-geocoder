@@ -51,7 +51,10 @@ def main():
     es.put_mapping(index=INDEX, doc_type=DOCTYPE,
                    mapping={"properties": {
                        "location": {
-                           "type": "geo_shape"},
+                           "type": "geo_shape",
+                           "tree": "quadtree",
+                           # For some reason ES is faster with coarse index than no index at all
+                           "precision": "10km"},
                        "filename": {
                            "type": "string",
                            "analyzer": "keyword"}}})
@@ -62,7 +65,7 @@ def main():
 
 def documents(filenames):
     for i in filenames:
-        logger.info('Prosessing file %s', i)
+        logger.info('Processing file %s', i)
         if i[-4:] == ".zip":
             with ZipFile(i) as z:
                 for j in z.namelist():
