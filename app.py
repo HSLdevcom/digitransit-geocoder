@@ -9,6 +9,7 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous, HTTPError
 
+
 ES_URL = "http://localhost:9200/reittiopas/"
 
 
@@ -57,6 +58,7 @@ class StreetSearchHandler(Handler):
                 'number': a['number'],
                 'unit': a['unit'],
                 'location': a['location'],
+                'source': 'OSM'
             }
         for a in list(map(lambda x: x['_source'], data['responses'][0]["hits"]["hits"])):
             id = (a['kaupunki'], a['katunimi'], str(a['osoitenumero']))
@@ -67,6 +69,7 @@ class StreetSearchHandler(Handler):
                     'number': str(a['osoitenumero']),
                     'unit': None,
                     'location': a['location'],
+                    'source': 'HRI.fi'
                 }
             else:
                 logging.info('Returning OSM address instead of official: %s', id)
@@ -262,17 +265,17 @@ def make_app():
              StreetSearchHandler,
              {'url': "_msearch",
               'template_string':
-              '{}\n'
+              '{"type": "address"}\n'
               '{"query": { "filtered": {'
                      '"filter": {'
                          '"bool" : {'
                              '"must" : ['
                                  '{"term": { "kaupunki": "{{ city.lower() }}"}},'
-                                 '{"term": { "katunimi": "{{ streetname.title() }}"}},'
+                                 '{"term": { "katunimi.raw": "{{ streetname.lower() }}"}},'
                                  '{"term": { "osoitenumero": {{ streetnumber }} }}'
                              ']}'
               '}}}}\n'
-              '{}\n'
+              '{"type": "osm_address"}\n'
               '{"query": { "filtered": {'
                      '"filter": {'
                          '"bool" : {'
@@ -293,7 +296,7 @@ def make_app():
                          "bool" : {
                              "must" : [
                                  {"term": { "kaupunki": "{{ city.lower() }}"}},
-                                 {"term": { "katunimi": "{{ streetname.title() }}"}}
+                                 {"term": { "katunimi.raw": "{{ streetname.lower() }}"}}
                              ]}
               }}}}'''
               }),
