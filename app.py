@@ -79,14 +79,18 @@ class StreetSearchHandler(Handler):
                 'source': 'OSM'
             }
         for a in list(map(lambda x: x['_source'], data['responses'][0]["hits"]["hits"])):
-            id = (a['kaupunki'], a['katunimi'], str(a['osoitenumero']))
+            if not a['osoitenumero2']:
+                number = str(a['osoitenumero'])
+            else:
+                number = str(a['osoitenumero']) + '-' + str(a['osoitenumero2'])
+            id = (a['kaupunki'], a['katunimi'], number)
             if id not in addresses:
                 addresses[id] = {
                     'municipality-fi': a['kaupunki'],
                     'municipality-sv': a['staden'],
                     'street-fi': a['katunimi'],
                     'street-sv': a['gatan'],
-                    'number': str(a['osoitenumero']),
+                    'number': number,
                     'unit': None,
                     'location': a['location'],
                     'source': 'HRI.fi'
@@ -318,7 +322,10 @@ def make_app():
                                  '{or: ['
                                      '{"term": { "katunimi.raw": "{{ streetname.lower() }}"}},'
                                      '{"term": { "gatan.raw": "{{ streetname.lower() }}"}}]},'
-                                 '{"term": { "osoitenumero": {{ streetnumber }} }}'
+                                 '{"range":'
+                                    '{"osoitenumero": {"lte" : {{ streetnumber }} }}},'
+                                 '{"range":'
+                                    '{"osoitenumero2": {"gte" : {{ streetnumber }} }}}'
                              ']}'
               '}}}}\n'
               '{"type": "osm_address"}\n'
