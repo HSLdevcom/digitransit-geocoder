@@ -7,7 +7,7 @@ RUN \
     apt-get update && \
     apt-get install -y default-jre elasticsearch \
         python3-gdal python3-dev python3-pip \
-        git libprotobuf-dev protobuf-compiler \
+        git libprotobuf-dev protobuf-compiler libspatialindex-dev \
         unzip && \
     echo "discovery.zen.ping.multicast.enabled: false" >> /etc/elasticsearch/elasticsearch.yml
 

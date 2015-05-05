@@ -9,8 +9,11 @@ import sys
 
 import pyelasticsearch
 from imposm.parser import OSMParser
+from rtree import index
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.point import Point
+
+from IPython import embed
 
 import mml_municipalities
 
@@ -33,9 +36,20 @@ ways = {}
 addresses = {}
 coords = {}
 
+# Storing the polygons separately is hugely more efficient compared to
+# storing in index due to the pickling rtree does
 municipalities = []
-for m in mml_municipalities.parse(sys.argv[2]):
-    municipalities.append((m['nimi'], Polygon(m['boundaries']['coordinates'][0][0])))
+p = index.Property()
+# XXX 10/10/3 is better than the default 100/100/32, but perhaps not the best
+p.index_capacity = 10
+p.leaf_capacity = 10
+p. near_minimum_overlap_factor = 3
+idx = index.Index(properties=p)
+for i, m in enumerate(mml_municipalities.parse(sys.argv[2])):
+    polygon = Polygon(m['boundaries']['coordinates'][0][0])
+    municipalities.append((m['nimi'], polygon))
+    idx.insert(i, polygon.bounds)
+
 
 def send_bulk(operations, doctype):
     try:
@@ -106,7 +120,8 @@ def ways_callback(new_ways):
 def add_address(street, number, location, unit=None, main=False, municipality=None):
     if not municipality:
         p = Point(*location)
-        for name, geom in municipalities:
+        for name, geom in [municipalities[i] for i in idx.intersection(
+                (location[0], location[1], location[0], location[1]))]:
             if geom.contains(p):
                 municipality = name
                 break
