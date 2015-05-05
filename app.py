@@ -109,20 +109,23 @@ class SuggestHandler(Handler):
 
     def transform_es(self, data):
         r = data['responses']
-        streetnames_fi = {}
+        streetnames_fi = []
         for s in r[0]["aggregations"]["streets"]["buckets"]:
-            streetnames_fi[s["key"]] = s["cities"]["buckets"]
-        streetnames_sv = {}
+            streetnames_fi.append({s["key"]: s["cities"]["buckets"]})
+        streetnames_sv = []
         for s in r[1]["aggregations"]["streets"]["buckets"]:
-            streetnames_sv[s["key"]] = s["cities"]["buckets"]
+            streetnames_sv.append({s["key"]: s["cities"]["buckets"]})
         stops = {}
         for s in r[2]["hits"]["hits"] + r[3]["hits"]["hits"] + r[4]["hits"]["hits"]:
             if s["_id"] not in stops:
                 stops[s["_id"]] = s["_source"]
         return {
-            'streetnames_fi': streetnames_fi,
-            'streetnames_sv': streetnames_sv,
-            'stops': list(stops.values()),
+            'streetnames_fi': sorted(streetnames_fi,
+                                     key=lambda x: x.keys().__iter__().__next__()),
+            'streetnames_sv': sorted(streetnames_sv,
+                                     key=lambda x: x.keys().__iter__().__next__()),
+            'stops': sorted(list(stops.values()),
+                            key=lambda x: x['stop_name'] + x['stop_desc']),
             'fuzzy_streetnames': r[5]["aggregations"]["streets"]["buckets"],
         }
 
