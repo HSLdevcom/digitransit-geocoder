@@ -76,6 +76,13 @@ def main():
                                "fields": {
                                    "raw": {
                                        "type": "string",
+                                       "analyzer": "myAnalyzer"}}},
+                           "gatan": {
+                               "type": "string",
+                               "analyzer": "keyword",
+                               "fields": {
+                                   "raw": {
+                                       "type": "string",
                                        "analyzer": "myAnalyzer"}}}}})
 
     for chunk in pyelasticsearch.bulk_chunks(documents(), docs_per_chunk=500):

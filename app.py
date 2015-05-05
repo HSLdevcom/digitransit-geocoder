@@ -9,6 +9,8 @@ from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous, HTTPError
 
+from IPython import embed
+
 
 ES_URL = "http://localhost:9200/reittiopas/"
 
@@ -64,8 +66,10 @@ class StreetSearchHandler(Handler):
             id = (a['kaupunki'], a['katunimi'], str(a['osoitenumero']))
             if id not in addresses:
                 addresses[id] = {
-                    'municipality': a['kaupunki'],
-                    'street': a['katunimi'],
+                    'municipality-fi': a['kaupunki'],
+                    'municipality-sv': a['staden'],
+                    'street-fi': a['katunimi'],
+                    'street-sv': a['gatan'],
                     'number': str(a['osoitenumero']),
                     'unit': None,
                     'location': a['location'],
@@ -89,17 +93,21 @@ class SuggestHandler(Handler):
 
     def transform_es(self, data):
         r = data['responses']
+        streetnames_fi = {}
+        for s in r[0]["aggregations"]["streets"]["buckets"]:
+            streetnames_fi[s["key"]] = s["cities"]["buckets"]
+        streetnames_sv = {}
+        for s in r[1]["aggregations"]["streets"]["buckets"]:
+            streetnames_sv[s["key"]] = s["cities"]["buckets"]
         stops = {}
-        for s in r[1]["hits"]["hits"] + r[2]["hits"]["hits"]:
+        for s in r[2]["hits"]["hits"] + r[3]["hits"]["hits"] + r[4]["hits"]["hits"]:
             if s["_id"] not in stops:
                 stops[s["_id"]] = s["_source"]
-        streetnames = {}
-        for s in r[0]["aggregations"]["streets"]["buckets"]:
-            streetnames[s["key"]] = s["cities"]["buckets"]
         return {
-            'streetnames': streetnames,
-            'fuzzy_streetnames': r[3]["aggregations"]["streets"]["buckets"],
-            'stops': list(stops.values())
+            'streetnames_fi': streetnames_fi,
+            'streetnames_sv': streetnames_sv,
+            'stops': list(stops.values()),
+            'fuzzy_streetnames': r[5]["aggregations"]["streets"]["buckets"],
         }
 
 
@@ -224,22 +232,30 @@ def make_app():
               'template_string':
               # Find street names by matching correctly written part from anywhere,
               # ordered by number of addresses
-              '{"search_type" : "count"}\n'
+              '{"search_type" : "count", "type": "address"}\n'
               '{"query": {'
               '"wildcard": {'
-              '"raw": "*{{ search_term.lower() }}*"}},'
+              '"katunimi.raw": "*{{ search_term.lower() }}*"}},'
               '"aggs": {'
               '"streets": { "terms": { "field": "katunimi", "size": 20 },'
                          '"aggs": {"cities":'
                                    '{"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
-              '{}\n'
+              '{"search_type" : "count", "type": "address"}\n'
+              '{"query": {'
+              '"wildcard": {'
+              '"gatan.raw": "*{{ search_term.lower() }}*"}},'
+              '"aggs": {'
+              '"streets": { "terms": { "field": "gatan", "size": 20 },'
+                         '"aggs": {"cities":'
+                                   '{"terms": { "field": "staden", "size": 20 }}}}}}\n'
+              '{"type": "stop"}\n'
               # Find correctly written stops from names
               '{'
               '"size": 20,'
               '"query": {'
               '"wildcard": {'
               '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
-              '{}\n'
+              '{"type": "stop"}\n'
               # Find correctly written stops from descriptions
               # (often crossing street name, or closest address)
               '{'
@@ -247,6 +263,13 @@ def make_app():
               '"query": {'
               '"wildcard": {'
               '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
+              '{"type": "stop"}\n'
+              # Find correctly written stop codes
+              '{'
+              '"size": 20,'
+              '"query": {'
+              '"wildcard": {'
+              '"stop_code": "*{{ search_term.lower() }}*"}}}\n'
               '{"search_type" : "count"}\n'
               # Find incorrectly written street names with maximum Levenstein
               # distance of 2 (hardcoded into Elasticsearch)
@@ -270,8 +293,12 @@ def make_app():
                      '"filter": {'
                          '"bool" : {'
                              '"must" : ['
-                                 '{"term": { "kaupunki": "{{ city.lower() }}"}},'
-                                 '{"term": { "katunimi.raw": "{{ streetname.lower() }}"}},'
+                                 '{or: ['
+                                     '{"term": { "kaupunki": "{{ city.lower() }}"}},'
+                                     '{"term": { "staden": "{{ city.lower() }}"}}]},'
+                                 '{or: ['
+                                     '{"term": { "katunimi.raw": "{{ streetname.lower() }}"}},'
+                                     '{"term": { "gatan.raw": "{{ streetname.lower() }}"}}]},'
                                  '{"term": { "osoitenumero": {{ streetnumber }} }}'
                              ']}'
               '}}}}\n'
@@ -295,8 +322,12 @@ def make_app():
                      "filter": {
                          "bool" : {
                              "must" : [
-                                 {"term": { "kaupunki": "{{ city.lower() }}"}},
-                                 {"term": { "katunimi.raw": "{{ streetname.lower() }}"}}
+                                 {or: [
+                                     {"term": { "kaupunki": "{{ city.lower() }}"}},
+                                     {"term": { "staden": "{{ city.lower() }}"}}]},
+                                 {or: [
+                                     {"term": { "katunimi.raw": "{{ streetname.lower() }}"}},
+                                     {"term": { "gatan.raw": "{{ streetname.lower() }}"}}]}
                              ]}
               }}}}'''
               }),
