@@ -79,4 +79,5 @@ popd &&
 echo "Processing NLS road data" &&
 find /data/nls -type f -newermt @$TIME -exec ./mml_addresses.py {} +
 
+touch /data/updated
 echo Done

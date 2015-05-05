@@ -12,7 +12,23 @@ from tornado.web import RequestHandler, Application, url, asynchronous, HTTPErro
 from IPython import embed
 
 
+DATE = None
 ES_URL = "http://localhost:9200/reittiopas/"
+
+
+def finish_request(handler):
+    if 'Origin' in handler.request.headers:
+        handler.set_header('Access-Control-Allow-Origin', handler.request.headers['Origin'])
+    else:
+        handler.set_header('Access-Control-Allow-Origin', '*')
+    handler.set_header('Content-Type', 'application/json; charset="utf-8"')
+    handler.finish()
+
+
+class MetaHandler(RequestHandler):
+    def get(self):
+        self.write({'updated': DATE})
+        finish_request(self)
 
 
 class Handler(RequestHandler):
@@ -334,7 +350,9 @@ def make_app():
          url(r"/interpolate/(?P<streetname>.*)/(?P<streetnumber>.*)",
              InterpolateHandler),
          url(r"/reverse/(?P<lat>.*),(?P<lon>.*)",
-             ReverseHandler)],
+             ReverseHandler),
+         url(r"/meta",
+             MetaHandler)],
         debug=True)
 
 
@@ -344,11 +362,16 @@ def main():
                         help="TCP port to serve the API from", default=8888)
     parser.add_argument("-v", "--verbose", action='count',
                         help="Use once for info, twice for more")
+    parser.add_argument("-d", "--date",
+                        help="The metadata updated date")
     args = parser.parse_args()
     if args.verbose == 1:
         logging.basicConfig(level=logging.INFO)
     elif args.verbose == 2:
         logging.basicConfig(level=logging.DEBUG)
+    if args.date:
+        global DATE
+        DATE = args.date
 
     app = make_app()
     app.listen(args.port)
