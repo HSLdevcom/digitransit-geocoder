@@ -246,7 +246,7 @@ class InterpolateHandler(Handler):
 
 def make_app():
     return Application(
-        [url(r"/suggest/(?P<search_term>.*)",
+        [url(r"/suggest/(?P<search_term>[\w\- ]*)",
              SuggestHandler,
              # _msearch allows multiple queries at the same time, but is very
              # finicky about the format.
@@ -293,7 +293,7 @@ def make_app():
               '"query": {'
               '"wildcard": {'
               '"stop_code": "*{{ search_term.lower() }}*"}}}\n'
-              '{"search_type" : "count"}\n'
+              '{"search_type" : "count", "type": "address"}\n'
               # Find incorrectly written street names with maximum Levenstein
               # distance of 2 (hardcoded into Elasticsearch)
               # XXX Would be nice if we could do a fuzzy wildcard search...
@@ -307,7 +307,7 @@ def make_app():
               '\n',  # ES requires a blank line at the end (not documented)
               }),
          # The URL regexps are searched in order, so more specific URLs must come first
-         url(r"/search/(?P<city>.*)/(?P<streetname>.*)/(?P<streetnumber>.*)",
+         url(r"/search/(?P<city>[\w\- ]*)/(?P<streetname>[\w\- ]*)/(?P<streetnumber>[\w\- ]*)",
              StreetSearchHandler,
              {'url': "_msearch",
               'template_string':
@@ -340,7 +340,7 @@ def make_app():
               '}}}}\n'
               '\n'
               }),
-         url(r"/search/(?P<city>.*)/(?P<streetname>.*)",
+         url(r"/search/(?P<city>[\w\- ]*)/(?P<streetname>[\w\- ]*)",
              SearchHandler,
              {'url': "address/_search?pretty&size=2000",
               'template_string': '''{
@@ -357,9 +357,9 @@ def make_app():
                              ]}
               }}}}'''
               }),
-         url(r"/interpolate/(?P<streetname>.*)/(?P<streetnumber>.*)",
+         url(r"/interpolate/(?P<streetname>[\w\- ]*)/(?P<streetnumber>[\w\- ]*)",
              InterpolateHandler),
-         url(r"/reverse/(?P<lat>.*),(?P<lon>.*)",
+         url(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
              ReverseHandler),
          url(r"/meta",
              MetaHandler)],
