@@ -1,5 +1,6 @@
 git+https://github.com/tpievila/imposm-parser.git@64150b1335cf1bed00452d3bca2b74b46e7f67fe#egg=imposm.parser
 git+https://github.com/tpievila/pyshp.git@#egg=pyshp
+git+https://github.com/mitsuhiko/click.git@4.x-maintenance#egg=click
 pyelasticsearch==1.2
 defusedxml==0.4.1
 pyproj==1.9.4

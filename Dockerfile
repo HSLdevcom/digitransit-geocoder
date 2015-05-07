@@ -17,12 +17,12 @@ COPY setup.py requirements.txt /app/
 
 RUN pip3 install . -r requirements.txt
 
-COPY create_index.py addresses.py mml_municipalities.py mml_addresses.py osm_pbf.py palvelukartta.py stops.py lipas.py import-data.sh elastic-wait.sh /app/
+COPY create_index.py addresses.py mml_municipalities.py mml_addresses.py osm_pbf.py palvelukartta.py stops.py lipas.py utils.py import-data.sh elastic-wait.sh /app/
 
 RUN ./import-data.sh
 
 COPY app.py run-server.sh /app/
 
-CMD ["/bin/sh", "run-server.sh", 8888]
+CMD ["/bin/sh", "run-server.sh", "8888"]
 
 EXPOSE 8888

@@ -1,22 +1,21 @@
 #!/usr/bin/env python3
-import argparse
+# pylint: disable=abstract-method,arguments-differ
 import json
 import logging
 
+import click
 from jinja2 import Template
 from shapely.geometry import LineString
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, Application, url, asynchronous, HTTPError
-
-from IPython import embed
+from tornado.web import RequestHandler, Application, URLSpec, asynchronous, HTTPError
 
 
-DATE = None
 ES_URL = "http://localhost:9200/reittiopas/"
 
 
 def finish_request(handler):
+    '''Set CORS and content type headers and call finish on given handler.'''
     if 'Origin' in handler.request.headers:
         handler.set_header('Access-Control-Allow-Origin', handler.request.headers['Origin'])
     else:
@@ -26,12 +25,17 @@ def finish_request(handler):
 
 
 class MetaHandler(RequestHandler):
+    '''RequestHandler for the meta endpoint.'''
+    def initialize(self, date):
+        self.date = date
+
     def get(self):
-        self.write({'updated': DATE})
+        self.write({'updated': self.date})
         finish_request(self)
 
 
 class Handler(RequestHandler):
+    '''Superclass for search and suggest endpoints.'''
     def initialize(self, template_string, url):
         self.template_string = template_string
         self.url = url
@@ -40,11 +44,12 @@ class Handler(RequestHandler):
     def get(self, **kwargs):
         template = Template(self.template_string)
         AsyncHTTPClient().fetch(ES_URL + self.url,
-                   allow_nonstandard_methods=True,
-                   body=template.render(kwargs),
-                   callback=self.on_response)
+                                allow_nonstandard_methods=True,
+                                body=template.render(kwargs),
+                                callback=self.on_response)
 
     def on_response(self, response):
+        '''Callback for handling replies from ElasticSearch.'''
         if response.error:
             logging.error(response)
             if response.body:
@@ -67,32 +72,33 @@ class Handler(RequestHandler):
 
 
 class StreetSearchHandler(Handler):
+    '''RequestHandler for the getting the location of one address.'''
     def transform_es(self, data):
         addresses = {}
-        for a in list(map(lambda x: x['_source'], data['responses'][1]["hits"]["hits"])):
-            addresses[(a['municipality'], a['street'], a['number'])] = {
-                'municipality': a['municipality'],
-                'street': a['street'],
-                'number': a['number'],
-                'unit': a['unit'],
-                'location': a['location'],
+        for addr in [x['_source'] for x in data['responses'][1]["hits"]["hits"]]:
+            addresses[(addr['municipality'], addr['street'], addr['number'])] = {
+                'municipality': addr['municipality'],
+                'street': addr['street'],
+                'number': addr['number'],
+                'unit': addr['unit'],
+                'location': addr['location'],
                 'source': 'OSM'
             }
-        for a in list(map(lambda x: x['_source'], data['responses'][0]["hits"]["hits"])):
-            if not a['osoitenumero2']:
-                number = str(a['osoitenumero'])
+        for addr in [x['_source'] for x in data['responses'][0]["hits"]["hits"]]:
+            if not addr['osoitenumero2']:
+                number = str(addr['osoitenumero'])
             else:
-                number = str(a['osoitenumero']) + '-' + str(a['osoitenumero2'])
-            id = (a['kaupunki'], a['katunimi'], number)
+                number = str(addr['osoitenumero']) + '-' + str(addr['osoitenumero2'])
+            id = (addr['kaupunki'], addr['katunimi'], number)
             if id not in addresses:
                 addresses[id] = {
-                    'municipality-fi': a['kaupunki'],
-                    'municipality-sv': a['staden'],
-                    'street-fi': a['katunimi'],
-                    'street-sv': a['gatan'],
+                    'municipality-fi': addr['kaupunki'],
+                    'municipality-sv': addr['staden'],
+                    'street-fi': addr['katunimi'],
+                    'street-sv': addr['gatan'],
                     'number': number,
                     'unit': None,
-                    'location': a['location'],
+                    'location': addr['location'],
                     'source': 'HRI.fi'
                 }
             else:
@@ -102,14 +108,13 @@ class StreetSearchHandler(Handler):
 
 
 class SearchHandler(Handler):
+    '''RequestHandler for getting all the house numbers on a street.'''
     def transform_es(self, data):
-        return {'results': list(map(lambda x: x['_source'], data["hits"]["hits"]))}
+        return {'results': [x['_source'] for x in data["hits"]["hits"]]}
 
 
 class SuggestHandler(Handler):
-    """
-    Handler for autocomplete/typo fix suggestions
-    """
+    """RequestHandler for autocomplete/typo fix suggestions."""
 
     def transform_es(self, data):
         r = data['responses']
@@ -190,15 +195,16 @@ class ReverseHandler(Handler):
             }}''')
 
         AsyncHTTPClient().fetch(ES_URL + url,
-                   allow_nonstandard_methods=True,
-                   body=template.render(kwargs),
-                   callback=self.on_response)
+                                allow_nonstandard_methods=True,
+                                body=template.render(kwargs),
+                                callback=self.on_response)
 
     def transform_es(self, data):
         return data["hits"]["hits"][0]["_source"]
 
 
 class InterpolateHandler(Handler):
+    '''RequestHandler for coordinates interpolated from NLS data.'''
     def initialize(self):
         pass
 
@@ -223,11 +229,11 @@ class InterpolateHandler(Handler):
 
               }}}}''')
         AsyncHTTPClient().fetch(ES_URL + url,
-                   allow_nonstandard_methods=True,
-                   body=template.render({'streetname': streetname,
-                                         'streetnumber': streetnumber,
-                                         'side': self.side}),
-                   callback=self.on_response)
+                                allow_nonstandard_methods=True,
+                                body=template.render({'streetname': streetname,
+                                                      'streetnumber': streetnumber,
+                                                      'side': self.side}),
+                                callback=self.on_response)
 
     def transform_es(self, data):
         logging.debug(data)
@@ -242,151 +248,149 @@ class InterpolateHandler(Handler):
         return {}  # No results found
 
 
-
-
-def make_app():
+def make_app(debug=False, date=None):
+    '''Return a Tornado Application for handling geocoder API.'''
     return Application(
-        [url(r"/suggest/(?P<search_term>[\w\- ]*)",
-             SuggestHandler,
-             # _msearch allows multiple queries at the same time, but is very
-             # finicky about the format.
-             {'url': "_msearch",
-              # All queries are case insensitive
-              'template_string':
-              # Find street names by matching correctly written part from anywhere,
-              # ordered by number of addresses
-              '{"search_type" : "count", "type": "address"}\n'
-              '{"query": {'
-              '"wildcard": {'
-              '"katunimi.raw": "*{{ search_term.lower() }}*"}},'
-              '"aggs": {'
-              '"streets": { "terms": { "field": "katunimi", "size": 20 },'
-                         '"aggs": {"cities":'
-                                   '{"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
-              '{"search_type" : "count", "type": "address"}\n'
-              '{"query": {'
-              '"wildcard": {'
-              '"gatan.raw": "*{{ search_term.lower() }}*"}},'
-              '"aggs": {'
-              '"streets": { "terms": { "field": "gatan", "size": 20 },'
-                         '"aggs": {"cities":'
-                                   '{"terms": { "field": "staden", "size": 20 }}}}}}\n'
-              '{"type": "stop"}\n'
-              # Find correctly written stops from names
-              '{'
-              '"size": 20,'
-              '"query": {'
-              '"wildcard": {'
-              '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
-              '{"type": "stop"}\n'
-              # Find correctly written stops from descriptions
-              # (often crossing street name, or closest address)
-              '{'
-              '"size": 20,'
-              '"query": {'
-              '"wildcard": {'
-              '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
-              '{"type": "stop"}\n'
-              # Find correctly written stop codes
-              '{'
-              '"size": 20,'
-              '"query": {'
-              '"wildcard": {'
-              '"stop_code": "*{{ search_term.lower() }}*"}}}\n'
-              '{"search_type" : "count", "type": "address"}\n'
-              # Find incorrectly written street names with maximum Levenstein
-              # distance of 2 (hardcoded into Elasticsearch)
-              # XXX Would be nice if we could do a fuzzy wildcard search...
-              # http://www.elastic.co/guide/en/elasticsearch/reference/master/search-suggesters-completion.html
-              # allows at least fuzzy prefix suggestions
-              '{"query": {'
-              '"fuzzy": {'
-              '"raw": "{{ search_term.lower() }}"}},'
-              '"aggs": {'
-              '"streets": { "terms": { "field": "katunimi", "size": 20 }}}}\n'
-              '\n',  # ES requires a blank line at the end (not documented)
-              }),
+        # noqa
+        [URLSpec(r"/suggest/(?P<search_term>[\w\-% ]*)",
+                 SuggestHandler,
+                 # _msearch allows multiple queries at the same time,
+                 # but is very finicky about the format.
+                 {'url': "_msearch",
+                  # All queries are case insensitive
+                  'template_string':
+                  # Find street names by matching correctly written part from middle
+                  '{"search_type" : "count", "type": "address"}\n'
+                  '{"query": {'
+                     '"wildcard": {'
+                     '"katunimi.raw": "*{{ search_term.lower() }}*"}},'
+                   '"aggs": {'
+                     '"streets": {'
+                       '"terms": { "field": "katunimi", "size": 20 },'
+                       '"aggs": {'
+                         '"cities": {'
+                           '"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
+                  '{"search_type" : "count", "type": "address"}\n'
+                  '{"query": {'
+                     '"wildcard": {'
+                     '"gatan.raw": "*{{ search_term.lower() }}*"}},'
+                   '"aggs": {'
+                     '"streets": {'
+                       '"terms": { "field": "gatan", "size": 20 },'
+                       '"aggs": {'
+                         '"cities": {'
+                           '"terms": { "field": "staden", "size": 20 }}}}}}\n'
+                  # Find correctly written stops from names
+                  '{"type": "stop"}\n'
+                  '{"size": 20,'
+                   '"query": {'
+                     '"wildcard": {'
+                       '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
+                  # Find correctly written stops from descriptions
+                  # (often crossing street name, or closest address)
+                  '{"type": "stop"}\n'
+                  '{"size": 20,'
+                   '"query": {'
+                     '"wildcard": {'
+                       '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
+                  # Find correctly written stop codes
+                  '{"type": "stop"}\n'
+                  '{"size": 20,'
+                   '"query": {'
+                     '"wildcard": {'
+                       '"stop_code": "*{{ search_term.lower() }}*"}}}\n'
+                  # Find incorrectly written street names with maximum Levenstein
+                  # distance of 2 (hardcoded into Elasticsearch)
+                  # XXX Would be nice if we could do a fuzzy wildcard search...
+                  # http://www.elastic.co/guide/en/elasticsearch/reference/master/search-suggesters-completion.html
+                  # allows at least fuzzy prefix suggestions
+                  '{"search_type" : "count", "type": "address"}\n'
+                  '{"query": {'
+                     '"fuzzy": {'
+                       '"raw": "{{ search_term.lower() }}"}},'
+                   '"aggs": {'
+                     '"streets": {"terms": {"field": "katunimi", "size": 20 }}}}\n'
+                  '\n',  # ES requires a blank line at the end (not documented)
+                  }),
          # The URL regexps are searched in order, so more specific URLs must come first
-         url(r"/search/(?P<city>[\w\- ]*)/(?P<streetname>[\w\- ]*)/(?P<streetnumber>[\w\- ]*)",
-             StreetSearchHandler,
-             {'url': "_msearch",
-              'template_string':
-              '{"type": "address"}\n'
-              '{"query": { "filtered": {'
-                     '"filter": {'
+         URLSpec(r"/search/(?P<city>[\w\-% ]*)/(?P<streetname>[\w\-% ]*)/(?P<streetnumber>[\w\-% ]*)",
+                 StreetSearchHandler,
+                 {'url': "_msearch",
+                  'template_string':
+                  '{"type": "address"}\n'
+                  '{"query": {'
+                     '"filtered": {'
+                       '"filter": {'
                          '"bool" : {'
-                             '"must" : ['
-                                 '{or: ['
-                                     '{"term": { "kaupunki": "{{ city.lower() }}"}},'
-                                     '{"term": { "staden": "{{ city.lower() }}"}}]},'
-                                 '{or: ['
-                                     '{"term": { "katunimi.raw": "{{ streetname.lower() }}"}},'
-                                     '{"term": { "gatan.raw": "{{ streetname.lower() }}"}}]},'
-                                 '{"range":'
-                                    '{"osoitenumero": {"lte" : {{ streetnumber }} }}},'
-                                 '{"range":'
-                                    '{"osoitenumero2": {"gte" : {{ streetnumber }} }}}'
-                             ']}'
-              '}}}}\n'
-              '{"type": "osm_address"}\n'
-              '{"query": { "filtered": {'
-                     '"filter": {'
+                           '"must" : ['
+                             '{or: ['
+                               '{"term": {"kaupunki": "{{ city.lower() }}"}},'
+                               '{"term": {"staden": "{{ city.lower() }}"}}'
+                             ']},'
+                             '{or: ['
+                               '{"term": {"katunimi.raw": "{{ streetname.lower() }}"}},'
+                               '{"term": {"gatan.raw": "{{ streetname.lower() }}"}}'
+                             ']},'
+                             '{"range": {'
+                               '"osoitenumero": {"lte": {{ streetnumber }} }}},'
+                             '{"range": {'
+                               '"osoitenumero2": {"gte" : {{ streetnumber }} }}}'
+                  ']}}}}}\n'
+                  '{"type": "osm_address"}\n'
+                  '{"query": {'
+                     '"filtered": {'
+                       '"filter": {'
                          '"bool" : {'
-                             '"must" : ['
-                                 '{"term": { "municipality": "{{ city.lower() }}"}},'
-                                 '{"term": { "street": "{{ streetname.title() }}"}},'
-                                 '{"term": { "number": {{ streetnumber }} }}'
-                             ']}'
-              '}}}}\n'
-              '\n'
-              }),
-         url(r"/search/(?P<city>[\w\- ]*)/(?P<streetname>[\w\- ]*)",
-             SearchHandler,
-             {'url': "address/_search?pretty&size=2000",
-              'template_string': '''{
-                 "query": { "filtered": {
-                     "filter": {
-                         "bool" : {
+                           '"must" : ['
+                             '{"term": { "municipality": "{{ city.lower() }}"}},'
+                             '{"term": { "street": "{{ streetname.title() }}"}},'
+                             '{"term": { "number": {{ streetnumber }} }}'
+                  ']}}}}}\n'
+                  '\n'
+                  }),
+         URLSpec(r"/search/(?P<city>[\w\-% ]*)/(?P<streetname>[\w\-% ]*)",
+                 SearchHandler,
+                 {'url': "address/_search?pretty&size=2000",
+                  'template_string': '''{
+                     "query": {
+                       "filtered": {
+                         "filter": {
+                           "bool" : {
                              "must" : [
-                                 {or: [
-                                     {"term": { "kaupunki": "{{ city.lower() }}"}},
-                                     {"term": { "staden": "{{ city.lower() }}"}}]},
-                                 {or: [
-                                     {"term": { "katunimi.raw": "{{ streetname.lower() }}"}},
-                                     {"term": { "gatan.raw": "{{ streetname.lower() }}"}}]}
-                             ]}
-              }}}}'''
-              }),
-         url(r"/interpolate/(?P<streetname>[\w\- ]*)/(?P<streetnumber>[\w\- ]*)",
-             InterpolateHandler),
-         url(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
-             ReverseHandler),
-         url(r"/meta",
-             MetaHandler)],
-        debug=True)
+                               {or: [
+                                 {"term": { "kaupunki": "{{ city.lower() }}"}},
+                                 {"term": { "staden": "{{ city.lower() }}"}}]},
+                               {or: [
+                                 {"term": { "katunimi.raw": "{{ streetname.lower() }}"}},
+                                 {"term": { "gatan.raw": "{{ streetname.lower() }}"}}]}
+                   ]}}}}}'''
+                  }),
+         URLSpec(r"/interpolate/(?P<streetname>[\w\-% ]*)/(?P<streetnumber>[\w\-% ]*)",
+                 InterpolateHandler),
+         URLSpec(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
+                 ReverseHandler),
+         URLSpec(r"/meta",
+                 MetaHandler,
+                 {'date': date})],
+        debug=debug)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", type=int,
-                        help="TCP port to serve the API from", default=8888)
-    parser.add_argument("-v", "--verbose", action='count',
-                        help="Use once for info, twice for more")
-    parser.add_argument("-d", "--date",
-                        help="The metadata updated date")
-    args = parser.parse_args()
-    if args.verbose == 1:
+@click.command()
+@click.option("-p", '--port', help="TCP port to serve the API from",
+              default=8888, show_default=True)
+@click.option("-v", "--verbose", count=True, help="Use once for info, twice for more")
+@click.option("-d", "--date", help="The metadata updated date")
+def main(port=8888, verbose=0, date=None):
+    if verbose == 1:
         logging.basicConfig(level=logging.INFO)
-    elif args.verbose == 2:
+    elif verbose == 2:
         logging.basicConfig(level=logging.DEBUG)
-    if args.date:
-        global DATE
-        DATE = args.date
 
-    app = make_app()
-    app.listen(args.port)
+    app = make_app(verbose == 2, date)
+    app.listen(port)
     IOLoop.current().start()
 
 
 if __name__ == '__main__':
-        main()
+    # pylint: disable=no-value-for-parameter
+    main()
