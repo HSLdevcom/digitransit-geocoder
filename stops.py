@@ -24,16 +24,15 @@ def documents(csvfile):  # Elasticsearch calls records documents
 
 
 @click.command()
-@click.argument('filename', type=click.Path(exists=True))
-def main(filename):
+@click.argument('file', type=click.File())
+def main(file):
     prepare_es(((DOCTYPE,
                  {"properties": {
                      "location": {
                          "type": "geo_point"}}}), ))
 
-    with open(filename, encoding='utf-8') as csvfile:
-        for chunk in pyelasticsearch.bulk_chunks(documents(csvfile), docs_per_chunk=500):
-            ES.bulk(chunk, doc_type=DOCTYPE, index=INDEX)
+    for chunk in pyelasticsearch.bulk_chunks(documents(file), docs_per_chunk=500):
+        ES.bulk(chunk, doc_type=DOCTYPE, index=INDEX)
 
 
 if __name__ == '__main__':

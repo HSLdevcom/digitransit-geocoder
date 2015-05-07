@@ -31,8 +31,8 @@ AU_NS = '{urn:x-inspire:specification:gmlas:AdministrativeUnits:3.0}'
 BULK_SIZE = 256
 
 
-def parse(filename):
-    for member in ElementTree.parse(filename).iter(GML_NS + 'featureMember'):
+def parse(file):
+    for member in ElementTree.parse(file).iter(GML_NS + 'featureMember'):
         # './/' is XPath for all desendants, not just direct children
 
         # The data includes also regional areas, but we are only interested
@@ -74,14 +74,14 @@ def parse(filename):
 
 
 @click.command()
-@click.argument('filename', type=click.Path(exists=True))
-def main(filename):
+@click.argument('file', type=click.File(encoding='latin-1'))
+def main(file):
     prepare_es(((DOCTYPE,
                  {"properties": {
                      "boundaries": {
                          "type": "geo_shape"}}}), ))
 
-    for document in parse(filename):
+    for document in parse(file):
         try:
             ES.index(index=INDEX, doc_type=DOCTYPE, doc=document)
         except pyelasticsearch.exceptions.ElasticHttpError as e:

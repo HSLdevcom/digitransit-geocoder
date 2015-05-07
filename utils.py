@@ -42,7 +42,8 @@ def prepare_es(mappings):
         pass
     except ProtocolError:
         logging.critical("Cannot connect to ElasticSearch, stopping...")
-        raise
+        import sys
+        sys.exit(-1)
     for doctype, mapping in mappings:
         try:
             ES.delete_all(index=INDEX, doc_type=doctype)

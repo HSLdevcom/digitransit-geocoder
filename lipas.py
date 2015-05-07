@@ -39,7 +39,7 @@ def documents(shapefilename):
 
 
 @click.command()
-@click.argument('shapefilename', type=click.Path(exists=True))
+@click.argument('shapefilename', type=click.Path())
 def main(shapefilename):
     prepare_es(((DOCTYPE,
                  {"properties": {

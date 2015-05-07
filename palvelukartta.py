@@ -35,16 +35,15 @@ def documents(jsonfile):
 
 
 @click.command()
-@click.argument('jsonfilename', type=click.Path(exists=True))
-def main(jsonfilename):
+@click.argument('jsonfile', type=click.File(mode='rb'))
+def main(jsonfile):
     prepare_es(((DOCTYPE,
                  {"properties": {
                      "location": {
                          "type": "geo_point"}}}), ))
-    with open(jsonfilename, mode='rb') as jsonfile:
-        for chunk in pyelasticsearch.bulk_chunks(documents(jsonfile),
-                                                 docs_per_chunk=BULK_SIZE):
-            ES.bulk(chunk, doc_type=DOCTYPE, index=INDEX)
+    for chunk in pyelasticsearch.bulk_chunks(documents(jsonfile),
+                                             docs_per_chunk=BULK_SIZE):
+        ES.bulk(chunk, doc_type=DOCTYPE, index=INDEX)
 
 
 if __name__ == '__main__':
