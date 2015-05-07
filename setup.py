@@ -68,8 +68,9 @@ setup(
         'pyelasticsearch',
         'GDAL',
         'pyproj',
+        'click',
         'defusedxml',  # For National LandSurvey GML data
-        'imposm.parser',  'rtree'  # For OpenStreetMap
+        'imposm.parser', 'rtree',  # For OpenStreetMap
         'ijson',  # For capital area service map
         'pyshp',  # For lipas
         'shapely',  # For NLS addresses
