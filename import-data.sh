@@ -1,6 +1,7 @@
 #!/bin/bash
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
+set -e
 
 if [[ -n "$1" ]]; then
     if [[ "$1" = "--force" ]]; then
