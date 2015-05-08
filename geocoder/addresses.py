@@ -73,7 +73,10 @@ def main(cvsfilename):
                      "location": {
                          "type": "geo_point"},
                      "katunimi": street_mapping,
-                     "gatan": street_mapping}}), ))
+                     "gatan": street_mapping,
+                     "osoitenumero": {"type": "long"},
+                     "osoitenumero2": {"type": "long"},
+                 }}), ))
 
     with open(cvsfilename, encoding='latin-1') as file:
         for chunk in pyelasticsearch.bulk_chunks(documents(file), docs_per_chunk=500):
