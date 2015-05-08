@@ -1,7 +1,10 @@
 #!/bin/bash
+set -e
+
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
-set -e
 
 if [[ -n "$1" ]]; then
     if [[ "$1" = "--force" ]]; then
@@ -14,10 +17,10 @@ fi
 echo "Creating data directory"
 mkdir -p /data/elasticsearch
 
-./elastic-wait.sh
+$DIR/elastic-wait.sh
 
 echo "Creating index"
-./create_index.py
+create_index
 
 echo "Updating address data..."
 if [[ "$(curl -z /data/osoitteet.csv --retry 5 -f http://ptp.hel.fi/avoindata/aineistot/Paakaupunkiseudun_osoiteluettelo.zip -o osoitteet.zip -s -L -w %{http_code})" == "200" ]] &&
@@ -25,7 +28,7 @@ if [[ "$(curl -z /data/osoitteet.csv --retry 5 -f http://ptp.hel.fi/avoindata/ai
       mv PKS_avoin_osoiteluettelo.csv /data/osoitteet.csv &&
       rm osoitteet.zip *_kuvaus.pdf || [[ $FORCE ]]; then
     echo "Processing address data"
-    ./addresses.py /data/osoitteet.csv
+    addresses /data/osoitteet.csv
 else
     echo -e "\tNo new data available"
 fi
@@ -35,7 +38,7 @@ if [[ "$(curl -z /data/kuntajako.xml --retry 5 -f http://kartat.kapsi.fi/files/k
       unzip -jDD kuntajako.zip TietoaKuntajaosta_2015_10k/SuomenKuntajako_2015_10k.xml &&
       mv SuomenKuntajako_2015_10k.xml /data/kuntajako.xml &&
       rm kuntajako.zip || [[ $FORCE ]]; then
-    ./mml_municipalities.py /data/kuntajako.xml
+    mml_municipalities /data/kuntajako.xml
 else
     echo -e "\tNo new data available"
 fi
@@ -43,7 +46,7 @@ fi
 echo "Updating OpenStreetMap data..."
 if [[ "$(curl -z /data/finland-latest.osm.pbf --retry 5 -f http://download.geofabrik.de/europe/finland-latest.osm.pbf -o /data/finland-latest.osm.pbf -s -L -w %{http_code})" == "200" || $FORCE ]]; then
     echo "Processing OpenStreetMap data"
-    ./osm_pbf.py /data/finland-latest.osm.pbf /data/kuntajako.xml
+    osm_pbf /data/finland-latest.osm.pbf /data/kuntajako.xml
 else
     echo -e "\tNo new data available"
 fi
@@ -51,7 +54,7 @@ fi
 echo "Downloading capital area service data..."
 curl --retry 5 -f http://www.hel.fi/palvelukarttaws/rest/v2/unit/ -o /data/services.json &&
 echo "Processing service data" &&
-./palvelukartta.py /data/services.json
+palvelukartta /data/services.json
 
 echo "Downloading lipas data..."
 curl --retry 5 -f "http://lipas.cc.jyu.fi:80/geoserver/lipas/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=lipas:lipas_kaikki_pisteet&outputFormat=SHAPE-ZIP" -o lipas.zip &&
@@ -59,7 +62,7 @@ unzip -jDD lipas.zip &&
 rm wfsrequest.txt lipas.zip &&
 mv lipas_kaikki_pisteet.* /data/ &&
 echo "Processing lipas data" &&
-./lipas.py /data/lipas_kaikki_pisteet
+lipas /data/lipas_kaikki_pisteet
 
 echo "Updating GTFS data..."
 if [[ "$(curl -z /data/stops.txt --retry 5 -f http://matka.hsl.fi/route-server/hsl.zip -o gtfs.zip -s -L -w %{http_code})" == "200" ]] &&
@@ -67,7 +70,7 @@ if [[ "$(curl -z /data/stops.txt --retry 5 -f http://matka.hsl.fi/route-server/h
       mv stops.txt /data/ &&
       rm gtfs.zip || [[ $FORCE ]]; then
     echo "Processing GTFS data" &&
-    ./stops.py /data/stops.txt
+    stops /data/stops.txt
 else
     echo -e "\tNo new data available"
 fi
@@ -80,7 +83,7 @@ wget -r -np -nd -l1 -N --no-verbose http://kartat.kapsi.fi/files/maastotietokant
 rm index.html* &&
 popd &&
 echo "Processing NLS road data" &&
-find /data/nls -type f -newermt @$TIME -exec ./mml_addresses.py {} +
+find /data/nls -type f -newermt @$TIME -exec mml_addresses {} +
 
 touch /data/updated
 echo Done

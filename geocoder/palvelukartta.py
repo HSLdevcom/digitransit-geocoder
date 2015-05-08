@@ -6,7 +6,7 @@ import click
 import ijson
 import pyelasticsearch
 
-from utils import ES, INDEX, prepare_es
+from geocoder.utils import ES, INDEX, prepare_es
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

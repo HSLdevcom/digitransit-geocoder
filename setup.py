@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """A setuptools based setup module.
 See:
 https://packaging.python.org/en/latest/distributing.html
@@ -10,7 +11,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 setup(
-    name='openreittiopas-geocoder',
+    name='geocoder',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -59,6 +60,7 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     # packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    packages=['geocoder'],
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
@@ -98,11 +100,15 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'addresses=addresses:main',
-            'mml=mml:main',
-            'osm_pbf=osm_pbf:main',
-            'palvelukartta=palvelukartta:main',
-            'app=app:main',
+            'addresses=geocoder.addresses:main',
+            'app=geocoder.app:main',
+            'create_index=geocoder.create_index:main',
+            'lipas=geocoder.lipas:main',
+            'osm_pbf=geocoder.osm_pbf:main',
+            'mml_addresses=geocoder.mml_addresses:main',
+            'mml_municipalities=geocoder.mml_municipalities:main',
+            'palvelukartta=geocoder.palvelukartta:main',
+            'stops=geocoder.stops:main',
         ],
     },
 )

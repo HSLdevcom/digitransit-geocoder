@@ -23,7 +23,7 @@ import click
 import pyelasticsearch
 from pyproj import Proj, transform
 
-from utils import ES, INDEX, prepare_es
+from geocoder.utils import ES, INDEX, prepare_es
 
 # ETRS89 / GK25FIN. Note it is NOT ETRS89 / ETRS-GK25FIN, which is EPSG:3132
 in_projision = Proj(init='epsg:3879')

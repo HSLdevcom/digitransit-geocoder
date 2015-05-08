@@ -17,7 +17,7 @@ from defusedxml import ElementTree
 from osgeo import ogr
 import pyelasticsearch
 
-from utils import ES, INDEX, ETRS89_WGS84_TRANSFORM, prepare_es
+from geocoder.utils import ES, INDEX, ETRS89_WGS84_TRANSFORM, prepare_es
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())

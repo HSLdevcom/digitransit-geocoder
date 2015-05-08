@@ -6,7 +6,7 @@ from osgeo import ogr
 import pyelasticsearch
 import shapefile
 
-from utils import ES, INDEX, prepare_es, ETRS89_WGS84_TRANSFORM
+from geocoder.utils import ES, INDEX, prepare_es, ETRS89_WGS84_TRANSFORM
 
 DOCTYPE = 'lipas'
 

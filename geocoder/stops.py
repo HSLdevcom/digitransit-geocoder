@@ -6,7 +6,7 @@ import logging
 import click
 import pyelasticsearch
 
-from utils import ES, INDEX, prepare_es
+from geocoder.utils import ES, INDEX, prepare_es
 
 DOCTYPE = 'stop'
 

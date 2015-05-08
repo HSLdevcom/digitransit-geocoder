@@ -12,8 +12,8 @@ import rtree
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.point import Point
 
-import mml_municipalities
-from utils import ES, send_bulk, prepare_es
+from geocoder import mml_municipalities
+from geocoder.utils import ES, send_bulk, prepare_es
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.ERROR)
