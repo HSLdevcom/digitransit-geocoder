@@ -92,3 +92,60 @@ def test_interpolate():
 def test_meta():
     r = requests.get('http://localhost:8888/meta')
     assert loads(r.text) == {'updated': '2015-01-01'}
+
+
+def test_suggest_streetname():
+    # Incomplete name should match from middle
+    r = requests.get('http://localhost:8888/suggest/ietoti')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['streetnames_fi']) == 1
+    assert len(results['streetnames_fi'][0]['Tietotie']) == 2
+    # asserting lists takes order into account, but we don't care about it
+    # so we just check that both results are in the list
+    assert {"key": "vantaa", "doc_count": 10} \
+        in results['streetnames_fi'][0]['Tietotie']
+    assert {"key": "espoo", "doc_count": 6} \
+        in results['streetnames_fi'][0]['Tietotie']
+
+
+def test_suggest_stop_name():
+    # WeeGee culture house should appear only in two stop names,
+    # and in no stop descriptions
+    r = requests.get('http://localhost:8888/suggest/weegee')
+    assert r.status_code == 200
+    assert len(loads(r.text)['stops']) == 2
+
+
+def test_suggest_stop_desc():
+    # Pohjantie should only appear in descriptions of stops WeeGee and Kaskenkaataja,
+    # not in names
+    r = requests.get('http://localhost:8888/suggest/Pohjantie')
+    assert r.status_code == 200
+    assert len(loads(r.text)['stops']) == 4
+
+
+def test_suggest_stop_code():
+    r = requests.get('http://localhost:8888/suggest/E1971')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['stops']) == 1
+    assert results['stops'][0] == {
+        "stop_url": "http://aikataulut.hsl.fi/pysakit/fi/2118206.html",
+        "location_type": "0",
+        "location": [24.826333500000132, 60.21038490000018],
+        "stop_id": "2118206",
+        "parent_station": " ",
+        "stop_desc": "Itsehallintotie",
+        "stop_name": "Majurinkulma",
+        "zone_id": "2",
+        "wheelchair_boarding": "0",
+        "stop_code": "E1971"
+    }
+
+
+def test_suggest_fuzzy_typo_fix():
+    r = requests.get('http://localhost:8888/suggest/Mannehreimintie')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['fuzzy_streetnames']) == 1
