@@ -152,7 +152,10 @@ class SearchHandler(Handler):
         super().get(**kwargs)
 
     def transform_es(self, data):
-        return {'results': [x['_source'] for x in data["hits"]["hits"]]}
+        results = [x['_source'] for x in data["hits"]["hits"]]
+        if not results:
+            raise HTTPError(404)
+        return {'results': results}
 
 
 class SuggestHandler(Handler):
@@ -315,7 +318,7 @@ class InterpolateHandler(Handler):
                 fraction = (self.streetnumber - int(street["min_" + self.side][0])) / \
                            (int(street["max_" + self.side][0]) - int(street["min_" + self.side][0]))
             return {'coordinates': list(LineString(street['location']['coordinates']).interpolate(fraction, normalized=True).coords)}
-        return {}  # No results found
+        raise HTTPError(404)
 
 
 def make_app(settings={}):

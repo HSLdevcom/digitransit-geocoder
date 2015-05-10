@@ -13,7 +13,7 @@ Virsutie,4,6,,Vantaa,Virsutie 4-6 Vantaa,6689909,25504051,Näverskovägen,Vanda,
     expected = {
         'katunimi': 'Adjutantinpolku',
         'osoitenumero': 2,
-        'osoitenumero2': '',
+        'osoitenumero2': 2,
         'kiinteiston_jakokirjain': '',
         'kaupunki': 'Helsinki',
         'location': (25.000450568957046, 60.18663906268862),
