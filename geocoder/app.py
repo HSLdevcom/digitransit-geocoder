@@ -11,6 +11,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, URLSpec, asynchronous, HTTPError
 
 
+DATE = None
 ES_URL = "http://localhost:9200/reittiopas/"
 
 
@@ -63,12 +64,7 @@ class Handler(RequestHandler):
             logging.error(response.request.body.decode())
             raise HTTPError(500)
         self.write(self.transform_es(json.loads(response.body.decode('utf-8'))))
-        if 'Origin' in self.request.headers:
-            self.set_header('Access-Control-Allow-Origin', self.request.headers['Origin'])
-        else:
-            self.set_header('Access-Control-Allow-Origin', '*')
-        self.set_header('Content-Type', 'application/json; charset="utf-8"')
-        self.finish()
+        finish_request(self)
 
     def transform_es(self, data):
         """
@@ -125,7 +121,7 @@ class StreetSearchHandler(Handler):
                 'source': 'OSM'
             }
         for addr in [x['_source'] for x in data['responses'][0]["hits"]["hits"]]:
-            if not addr['osoitenumero2']:
+            if addr['osoitenumero'] == addr['osoitenumero2']:
                 number = str(addr['osoitenumero'])
             else:
                 number = str(addr['osoitenumero']) + '-' + str(addr['osoitenumero2'])
@@ -456,12 +452,14 @@ app = make_app()
 @click.option("-v", "--verbose", count=True, help="Use once for info, twice for more")
 @click.option("-d", "--date", help="The metadata updated date")
 def main(port=8888, verbose=0, date=None):
+    global DATE, app
     if verbose == 1:
         logging.basicConfig(level=logging.INFO)
     elif verbose == 2:
         logging.basicConfig(level=logging.DEBUG)
+        app = make_app({'debug': True})
 
-    app = make_app(verbose == 2, date)
+    DATE = date
     app.listen(port)
     IOLoop.current().start()
 

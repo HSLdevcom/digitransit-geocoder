@@ -54,8 +54,11 @@ def documents(csvfile):  # Elasticsearch calls records documents
         else:
             logging.warning("No streetnumber:")
             logging.warning(line)
+            continue
         if line['osoitenumero2']:
             line['osoitenumero2'] = int(line['osoitenumero2'])
+        else:
+            line['osoitenumero2'] = int(line['osoitenumero'])
         yield ES.index_op(line)
 
 
