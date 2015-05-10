@@ -6,9 +6,13 @@ https://packaging.python.org/en/latest/distributing.html
 
 # Always prefer setuptools over distutils
 from setuptools import setup
+import sys
 from os import path
 
 here = path.abspath(path.dirname(__file__))
+
+needs_sphinx = set(['build_sphinx', 'upload_docs']).intersection(sys.argv)
+sphinx = ['sphinx', 'sphinxcontrib-httpdomain'] if needs_sphinx else []
 
 setup(
     name='geocoder',
@@ -40,7 +44,6 @@ setup(
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
 
         # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: European Union Public Licence 1.1 (EUPL 1.1)',
@@ -49,8 +52,6 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
 
         'Topic :: Scientific/Engineering :: GIS',
@@ -78,6 +79,8 @@ setup(
         'shapely',  # For NLS addresses
         'tornado', 'jinja2',  # For the web API
     ],
+
+    setup_requires=sphinx,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

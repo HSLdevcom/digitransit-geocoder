@@ -26,11 +26,17 @@ def finish_request(handler):
 
 class MetaHandler(RequestHandler):
     '''RequestHandler for the meta endpoint.'''
-    def initialize(self, date):
-        self.date = date
-
     def get(self):
-        self.write({'updated': self.date})
+        '''
+        When the geocoder data was refreshed as ISO 8601 date, for example::
+
+            {"updated": "2015-01-01"}
+
+        If the last update is not known::
+
+            {"updated": null}
+        '''
+        self.write({'updated': DATE})
         finish_request(self)
 
 
@@ -73,6 +79,40 @@ class Handler(RequestHandler):
 
 class StreetSearchHandler(Handler):
     '''RequestHandler for the getting the location of one address.'''
+
+    def get(self, **kwargs):
+        '''
+        Get an address location as hijack protected JSON array
+        in an object under the name "results".
+        All non ASCII chars are unicode escaped.
+
+        :>jsonarr string municipality-fi: Municipality name in Finnish
+        :>jsonarr string street-fi: Streetname in Finnish
+        :>jsonarr string municipality-sv: Municipality in Swedish
+        :>jsonarr string street-sv: Streetname in Swedish
+        :>jsonarr string number: Either a single integer as string, or "<integer>-<integer>" indicating a range of housenumbers in same address.
+        :>jsonarr string unit: Possible letter separating multiple addresses which share the same number
+        :>jsonarr latlon_array location: Array of two floats, latitude and longitude in WGS84
+        :>jsonarr string source: Either "HRI.fi" for data from Helsinki Region Infoshare, or "OSM" for OpenStreetMap
+        :responseheader Content-Type: application/json; charset="utf-8"
+        :responseheader Access-Control-Allow-Origin: Same as request Origin header if supplied, * otherwise
+
+        Example response::
+
+            {"results" : [
+                {
+                    "municipality-fi" : "Helsinki",
+                    "street-fi" : "Ida Aalbergin tie",
+                    "municipality-sv" : "Helsingfors",
+                    "street-sv" : "Ida Aalbergs v\u00e4",
+                    "number" : "9",
+                    "unit" : null,
+                    "location" : [24.896918441103, 60.2298693684843],
+                    "source" : "HRI.fi"
+                }]}
+        '''
+        super().get(**kwargs)
+
     def transform_es(self, data):
         addresses = {}
         for addr in [x['_source'] for x in data['responses'][1]["hits"]["hits"]]:
@@ -104,11 +144,17 @@ class StreetSearchHandler(Handler):
             else:
                 logging.info('Returning OSM address instead of official: %s', id)
 
+        if not addresses:
+            raise HTTPError(404)
         return {'results': list(addresses.values())}
 
 
 class SearchHandler(Handler):
     '''RequestHandler for getting all the house numbers on a street.'''
+
+    def get(self, **kwargs):
+        super().get(**kwargs)
+
     def transform_es(self, data):
         return {'results': [x['_source'] for x in data["hits"]["hits"]]}
 
@@ -129,6 +175,9 @@ class SuggestHandler(Handler):
             if s["_id"] not in stops:
                 stops[s["_id"]] = s["_source"]
         return {
+            # Address is a single key/value dict, where the streetname is the key.
+            # In Python3 it's a bit tricky to get that key:
+            # dict_keys -> iterator -> value
             'streetnames_fi': sorted(streetnames_fi,
                                      key=lambda x: x.keys().__iter__().__next__()),
             'streetnames_sv': sorted(streetnames_sv,
@@ -140,20 +189,43 @@ class SuggestHandler(Handler):
 
 
 class ReverseHandler(Handler):
-    """
-    Handler for reverse geocoding requests (i.e. "What's the name for these coordinates")
-
-    The answer depends on the zoom level. Zoomed out, the user cannot pinpoint addresses,
-    so return just the city. Closer, search for nearest address.
-    """
 
     def initialize(self):
         pass
 
     @asynchronous
     def get(self, **kwargs):
-        zoom = int(self.get_argument('zoom', default="8"))
-        if zoom >= 8:
+        """
+        Reverse geocoding request -- get the nearest city or address for given coordinates.
+
+        :query city: If given, return the city at given coordinates. If not, return nearest address. Useful for zoomed out views.
+        :>jsonarr string kaupunki: Municipality name in Finnish
+        :>jsonarr string katunimi: Streetname in Finnish
+        :>jsonarr string staden: Municipality in Swedish
+        :>jsonarr string gatan: Streetname in Swedish
+        :>jsonarr int osoitenumero: Housenumber
+        :>jsonarr int osoitenumero2: If the address is a range of housenumbers, this field contains the end of the range
+        :>jsonarr string kiinteiston_jakokirjain: Possible letter separating multiple addresses which share the same number
+        :>jsonarr latlon_array location: Array of two floats, latitude and longitude in WGS84
+        :responseheader Content-Type: application/json; charset="utf-8"
+        :responseheader Access-Control-Allow-Origin: Same as request Origin header if supplied, * otherwise
+        :status 404: if given latitude and longitude are malformed or coordinates weren't inside any city boundaries in a city request
+        :status 200: in all other cases since every valid coordinate will have a nearest address
+
+
+
+        Example of return data::
+
+            {"kaupunki" : "Espoo",
+             "katunimi" : "Kattilantie",
+             "staden" : "Esbo",
+             "gatan" : "Kattilavägen",
+             "osoitenumero" : 45,
+             "osoitenumero2" : 45,
+             "kiinteiston_jakokirjain" : "",
+             "location" : [24.5038823316986, 60.3216807160152]}
+        """
+        if 'city' not in self.request.arguments:
             url = "address/_search?pretty&size=1"
             template = Template('''{
                  "sort" : [{"_geo_distance" : {
@@ -200,6 +272,8 @@ class ReverseHandler(Handler):
                                 callback=self.on_response)
 
     def transform_es(self, data):
+        if not data['hits']['hits']:
+            raise HTTPError(404)
         return data["hits"]["hits"][0]["_source"]
 
 
@@ -248,8 +322,7 @@ class InterpolateHandler(Handler):
         return {}  # No results found
 
 
-def make_app(debug=False, date=None):
-    '''Return a Tornado Application for handling geocoder API.'''
+def make_app(settings={}):
     return Application(
         # noqa
         [URLSpec(r"/suggest/(?P<search_term>[\w\-% ]*)",
@@ -370,9 +443,11 @@ def make_app(debug=False, date=None):
          URLSpec(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
                  ReverseHandler),
          URLSpec(r"/meta",
-                 MetaHandler,
-                 {'date': date})],
-        debug=debug)
+                 MetaHandler)],
+         **settings)
+
+
+app = make_app()
 
 
 @click.command()
