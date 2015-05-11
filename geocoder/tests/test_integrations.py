@@ -1,10 +1,6 @@
 from json import loads
 
-import pytest
 import requests
-
-
-pytestmark = pytest.mark.usefixtures("app")
 
 
 def test_address():
