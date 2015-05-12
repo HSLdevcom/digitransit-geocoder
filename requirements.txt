@@ -5,4 +5,3 @@ pyelasticsearch==1.2
 defusedxml==0.4.1
 pyproj==1.9.4
 ijson==2.1
-sphinxcontrib-httpdomain
