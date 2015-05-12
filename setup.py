@@ -11,8 +11,7 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-needs_sphinx = set(['build_sphinx', 'upload_docs']).intersection(sys.argv)
-sphinx = ['sphinx', 'sphinxcontrib-httpdomain'] if needs_sphinx else []
+sphinx = ['sphinx', 'sphinxcontrib-httpdomain']
 
 setup(
     name='geocoder',
