@@ -4,7 +4,7 @@ import requests
 
 
 def test_address():
-    r = requests.get('http://localhost:8888/search/Helsinki/Ida%20Aalbergin%20tie/9')
+    r = requests.get('http://localhost:8888/address/Helsinki/Ida%20Aalbergin%20tie/9')
     assert r.status_code == 200
     results = loads(r.text)['results']
     assert len(results) == 1
@@ -21,7 +21,7 @@ def test_address():
 
 
 def test_non_latin_address():
-    r = requests.get('http://localhost:8888/search/Helsinki/Ida%20Aalbergs%20v%c3%a4g/9')
+    r = requests.get('http://localhost:8888/address/Helsinki/Ida%20Aalbergs%20v%c3%a4g/9')
     assert r.status_code == 200
     results = loads(r.text)['results']
     assert len(results) == 1
@@ -38,19 +38,19 @@ def test_non_latin_address():
 
 
 def test_not_existing_address():
-    r = requests.get('http://localhost:8888/search/Helsinki/Mannerheimintie/9999')
+    r = requests.get('http://localhost:8888/address/Helsinki/Mannerheimintie/9999')
     assert r.status_code == 404
 
 
 def test_street():
-    r = requests.get('http://localhost:8888/search/Helsinki/Ida%20Aalbergin%20tie')
+    r = requests.get('http://localhost:8888/street/Helsinki/Mannerheimintie')
     assert r.status_code == 200
     results = loads(r.text)['results']
-    assert len(results) == 11
+    assert len(results) == 156
 
 
 def test_not_existing_street():
-    r = requests.get('http://localhost:8888/search/Helsinki/Foo%20Bar%20road')
+    r = requests.get('http://localhost:8888/street/Helsinki/Foo%20Bar%20road')
     assert r.status_code == 404
 
 
@@ -103,6 +103,34 @@ def test_suggest_streetname():
         in results['streetnames_fi'][0]['Tietotie']
     assert {"key": "espoo", "doc_count": 6} \
         in results['streetnames_fi'][0]['Tietotie']
+
+
+def test_suggest_streetname_with_filter():
+    # Incomplete name should match from middle
+    r = requests.get('http://localhost:8888/suggest/ietoti?city=Espoo')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['streetnames_fi']) == 1
+    assert len(results['streetnames_fi'][0]['Tietotie']) == 1
+    assert results['streetnames_fi'][0]['Tietotie'][0] == \
+        {"key": "espoo", "doc_count": 6}
+
+
+def test_suggest_streetname_with_filter_2():
+    # Incomplete name should match from middle
+    r = requests.get('http://localhost:8888/suggest/ietoti?city=Espoo&city=Vantaa')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['streetnames_fi']) == 1
+    assert len(results['streetnames_fi'][0]['Tietotie']) == 2
+
+
+def test_suggest_streetname_with_filter_3():
+    # Incomplete name should match from middle
+    r = requests.get('http://localhost:8888/suggest/ietoti?city=Helsinki')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['streetnames_fi']) == 0
 
 
 def test_suggest_stop_name():
