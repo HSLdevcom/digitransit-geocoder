@@ -45,13 +45,15 @@ class Handler(RequestHandler):
     '''Superclass for other endpoints.'''
     @asynchronous
     def get(self, template_string, url, **kwargs):
-        template = Template(template_string)
+        body = Template(template_string).render(kwargs)
+        logging.debug("Sending query: %s", body)
         AsyncHTTPClient().fetch(ES_URL + url,
                                 allow_nonstandard_methods=True,
-                                body=template.render(kwargs),
+                                body=body,
                                 callback=self.on_response)
 
     def on_response(self, response):
+        logging.debug("Got response: %s", response)
         '''Callback for handling replies from ElasticSearch.'''
         if response.error:
             logging.error(response)
@@ -285,6 +287,7 @@ class SuggestHandler(Handler):
                      "doc_count" : 6
             }]}],
         '''
+        kwargs['cities'] = self.get_arguments('city')
         super().get(
             # noqa
             # _msearch allows multiple queries at the same time,
@@ -295,8 +298,22 @@ class SuggestHandler(Handler):
              # Find street names by matching correctly written part from middle
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
-                '"wildcard": {'
-                '"katunimi.raw": "*{{ search_term.lower() }}*"}},'
+                '"filtered": {'
+                 '"query": {'
+                   '"wildcard": {'
+                     '"katunimi.raw": "*{{ search_term.lower() }}*"}'
+                  '}'
+                  '{% if cities %}'
+                  ',"filter": {'
+                    'or: ['
+                    '{% for city in cities %}'
+                      '{"term": {"kaupunki": "{{ city.lower() }}"}},'
+                      '{"term": {"staden": "{{ city.lower() }}"}}'
+                      '{% if not loop.last %},{% endif %}'
+                    '{% endfor %}'
+                    ']}'
+                '{% endif %}'
+              '}},'
               '"aggs": {'
                 '"streets": {'
                   '"terms": { "field": "katunimi", "size": 20 },'
@@ -305,8 +322,22 @@ class SuggestHandler(Handler):
                       '"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
-                '"wildcard": {'
-                '"gatan.raw": "*{{ search_term.lower() }}*"}},'
+                '"filtered": {'
+                 '"query": {'
+                   '"wildcard": {'
+                     '"gatan.raw": "*{{ search_term.lower() }}*"}'
+                  '}'
+                  '{% if cities %}'
+                  ',"filter": {'
+                    'or: ['
+                    '{% for city in cities %}'
+                      '{"term": {"kaupunki": "{{ city.lower() }}"}},'
+                      '{"term": {"staden": "{{ city.lower() }}"}}'
+                      '{% if not loop.last %},{% endif %}'
+                    '{% endfor %}'
+                    ']}'
+                '{% endif %}'
+              '}},'
               '"aggs": {'
                 '"streets": {'
                   '"terms": { "field": "gatan", "size": 20 },'
@@ -494,7 +525,6 @@ class InterpolateHandler(Handler):
                                 callback=self.on_response)
 
     def transform_es(self, data):
-        logging.debug(data)
         if data["hits"]["hits"]:
             street = data["hits"]["hits"][0]["_source"]
             if street["max_" + self.side][0] == street["min_" + self.side][0]:

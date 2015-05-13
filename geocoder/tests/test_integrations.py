@@ -116,6 +116,18 @@ def test_suggest_streetname_with_filter():
         {"key": "espoo", "doc_count": 6}
 
 
+def test_suggest_swedish_streetname_with_filter():
+    # Incomplete name should match from middle
+    r = requests.get('http://localhost:8888/suggest/Datav?city=Espoo')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['streetnames_fi']) == 0
+    assert len(results['streetnames_sv']) == 1
+    assert len(results['streetnames_sv'][0]['Datavägen']) == 1
+    assert results['streetnames_sv'][0]['Datavägen'][0] == \
+        {"key": "esbo", "doc_count": 6}
+
+
 def test_suggest_streetname_with_filter_2():
     # Incomplete name should match from middle
     r = requests.get('http://localhost:8888/suggest/ietoti?city=Espoo&city=Vantaa')
