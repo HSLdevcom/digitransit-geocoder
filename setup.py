@@ -6,12 +6,22 @@ https://packaging.python.org/en/latest/distributing.html
 
 # Always prefer setuptools over distutils
 from setuptools import setup
-import sys
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-
-sphinx = ['sphinx', 'sphinxcontrib-httpdomain']
+requirements = [
+    'pyelasticsearch',
+    'GDAL',
+    'pyproj',
+    'click',
+    'defusedxml',  # For National LandSurvey GML data
+    'imposm.parser', 'rtree',  # For OpenStreetMap
+    'ijson',  # For capital area service map
+    'pyshp',  # For lipas
+    'shapely',  # For NLS addresses
+    'tornado', 'jinja2',  # For the web API
+    'sphinx', 'sphinxcontrib-httpdomain'
+]
 
 setup(
     name='geocoder',
@@ -62,24 +72,9 @@ setup(
     # packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     packages=['geocoder'],
 
-    # List run-time dependencies here.  These will be installed by pip when
-    # your project is installed. For an analysis of "install_requires" vs pip's
-    # requirements files see:
-    # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        'pyelasticsearch',
-        'GDAL',
-        'pyproj',
-        'click',
-        'defusedxml',  # For National LandSurvey GML data
-        'imposm.parser', 'rtree',  # For OpenStreetMap
-        'ijson',  # For capital area service map
-        'pyshp',  # For lipas
-        'shapely',  # For NLS addresses
-        'tornado', 'jinja2',  # For the web API
-    ],
 
-    setup_requires=sphinx,
+    install_requires=requirements,
+    setup_requires=requirements,
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

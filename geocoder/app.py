@@ -8,7 +8,7 @@ from jinja2 import Template
 from shapely.geometry import LineString
 from tornado.httpclient import AsyncHTTPClient
 from tornado.ioloop import IOLoop
-from tornado.web import RequestHandler, Application, URLSpec, asynchronous, HTTPError
+from tornado.web import RequestHandler, Application, URLSpec, asynchronous, HTTPError, StaticFileHandler
 
 
 DATE = None
@@ -536,7 +536,7 @@ class InterpolateHandler(Handler):
         raise HTTPError(404)
 
 
-def make_app(settings={}):
+def make_app(settings={}, path='../docs/_build/html/'):
     return Application(
         [URLSpec(r"/suggest/(?P<search_term>[\w\-% ]*)",
                  SuggestHandler),
@@ -550,7 +550,11 @@ def make_app(settings={}):
          URLSpec(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
                  ReverseHandler),
          URLSpec(r"/meta",
-                 MetaHandler)],
+                 MetaHandler),
+         URLSpec(r"/(.*)",
+                 StaticFileHandler,
+                 {"path": path,
+                  "default_filename": "index.html"})],
         **settings)
 
 
@@ -558,17 +562,21 @@ app = make_app()
 
 
 @click.command()
+@click.option('--docs', help="The directory containing API docs",
+              default='../docs/_build/html/', show_default=True)
 @click.option("-p", '--port', help="TCP port to serve the API from",
               default=8888, show_default=True)
 @click.option("-v", "--verbose", count=True, help="Use once for info, twice for more")
 @click.option("-d", "--date", help="The metadata updated date")
-def main(port=8888, verbose=0, date=None):
+def main(docs, port=8888, verbose=0, date=None):
     global DATE, app
+    settings = {}
     if verbose == 1:
         logging.basicConfig(level=logging.INFO)
     elif verbose == 2:
         logging.basicConfig(level=logging.DEBUG)
-        app = make_app({'debug': True})
+        settings = {'debug': True}
+    app = make_app(settings, path=docs)
 
     DATE = date
     app.listen(port)
