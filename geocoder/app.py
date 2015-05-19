@@ -180,7 +180,7 @@ class StreetSearchHandler(AddressSearchHandler):
                     "municipality-fi" : "Helsinki",
                     "street-fi" : "Ida Aalbergin tie",
                     "municipality-sv" : "Helsingfors",
-                    "street-sv" : "Ida Aalbergs v\u00e4",
+                    "street-sv" : "Ida Aalbergs v\u00e4g",
                     "unit" : null,
                     "number" : "1",
                     "location" : [24.9003449796381, 60.2306259161157],
@@ -190,7 +190,7 @@ class StreetSearchHandler(AddressSearchHandler):
                     "municipality-fi" : "Helsinki",
                     "street-fi" : "Ida Aalbergin tie",
                     "municipality-sv" : "Helsingfors",
-                    "street-sv" : "Ida Aalbergs v\u00e4",
+                    "street-sv" : "Ida Aalbergs v\u00e4g",
                     "unit" : null,
                     "number" : "2",
                     "location" : [24.9015735934518, 60.2301511387295],
@@ -255,7 +255,7 @@ class SuggestHandler(Handler):
                      {"key" : "helsingfors",
                       "doc_count" : 2
                  }]},
-                 {"Mannerheimv<E4>gen" : [
+                 {"Mannerheimv\u00e4gen" : [
                      {"doc_count" : 154,
                       "key" : "helsingfors"
              }]}],
