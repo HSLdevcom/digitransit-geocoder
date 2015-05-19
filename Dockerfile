@@ -29,6 +29,6 @@ RUN hg clone https://bitbucket.org/birkenfeld/sphinx-contrib && \
 COPY scripts /app/scripts/
 RUN scripts/import-data.sh
 
-CMD ["/bin/sh", "scripts/run-server.sh", "8888"]
+CMD ["scripts/run-server.sh", "8888"]
 
 EXPOSE 8888

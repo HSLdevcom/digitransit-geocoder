@@ -82,7 +82,7 @@ def test_not_existing_interpolate():
 def test_interpolate():
     r = requests.get('http://localhost:8888/interpolate/Mannerheimintie/2')
     assert r.status_code == 200
-    assert loads(r.text) == {'coordinates': [0, 0]}
+    assert loads(r.text) == {'coordinates': [24.943123528522143, 60.16661631427898]}
 
 
 def test_meta():
