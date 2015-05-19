@@ -499,6 +499,32 @@ class InterpolateHandler(Handler):
 
     @asynchronous
     def get(self, streetname, streetnumber):
+        """
+        Request a location of address only known by interpolation.
+
+        National Land Survey offers road data with a range of addresses given for
+        road segments. Interpolation is done linearly along the road curve.
+
+        .. warning:
+
+            It's not guaranteed that the given address actually exists!
+            For example a road segment might only have streetnumbers 200 and 300,
+            but this endpoint will return an interpolation for every number between
+            those.
+
+        :resjson latlon_array coordinates: Two floats, latitude and longitude
+        :responseheader Content-Type: application/json; charset="utf-8"
+        :responseheader Access-Control-Allow-Origin: Same as request Origin header if supplied, * otherwise
+        :status 404: if given address is not found in any road segment
+        :status 200: in all other cases
+
+
+
+        Example response::
+
+            {"coordinates": [[24.9397464196591, 60.16920195781718]]}
+
+        """
         self.streetnumber = int(streetnumber)
         if self.streetnumber % 2 == 0:
             self.side = "vasen"
@@ -510,7 +536,7 @@ class InterpolateHandler(Handler):
                      "filter": {
                          "bool" : {
                              "must" : [
-                                 {"term": {"nimi": "{{ streetname }}"}},
+                                 {"term": {"nimi": "{{ streetname.lower() }}"}},
                                  {"range":
                                     {"min_{{ side }}": {"lte" : {{ streetnumber }} }}},
                                  {"range":
@@ -532,20 +558,22 @@ class InterpolateHandler(Handler):
             else:
                 fraction = (self.streetnumber - int(street["min_" + self.side][0])) / \
                            (int(street["max_" + self.side][0]) - int(street["min_" + self.side][0]))
-            return {'coordinates': list(LineString(street['location']['coordinates']).interpolate(fraction, normalized=True).coords)}
+            return {'coordinates':
+                    list(LineString(street['location']['coordinates'])
+                         .interpolate(fraction, normalized=True).coords)[0]}
         raise HTTPError(404)
 
 
 def make_app(settings={}, path='../docs/_build/html/'):
     return Application(
-        [URLSpec(r"/suggest/(?P<search_term>[\w\-% ]*)",
+        [URLSpec(r"/suggest/(?P<search_term>[\w\-%]*)",
                  SuggestHandler),
          # The URL regexps are searched in order, so more specific URLs must come first
-         URLSpec(r"/address/(?P<city>[\w\-% ]*)/(?P<streetname>[\w\-% ]*)/(?P<streetnumber>[\w\-% ]*)",
+         URLSpec(r"/address/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%]*)/(?P<streetnumber>[\w\-%]*)",
                  AddressSearchHandler),
-         URLSpec(r"/street/(?P<city>[\w\-% ]*)/(?P<streetname>[\w\-% ]*)",
+         URLSpec(r"/street/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%]*)",
                  StreetSearchHandler),
-         URLSpec(r"/interpolate/(?P<streetname>[\w\-% ]*)/(?P<streetnumber>[\w\-% ]*)",
+         URLSpec(r"/interpolate/(?P<streetname>[\w\-%]*)/(?P<streetnumber>[\w\-%]*)",
                  InterpolateHandler),
          URLSpec(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
                  ReverseHandler),
