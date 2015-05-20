@@ -136,10 +136,10 @@ class AddressSearchHandler(Handler):
             id = (addr['kaupunki'], addr['katunimi'], number)
             if id not in addresses:
                 addresses[id] = {
-                    'municipality-fi': addr['kaupunki'],
-                    'municipality-sv': addr['staden'],
-                    'street-fi': addr['katunimi'],
-                    'street-sv': addr['gatan'],
+                    'municipalityFi': addr['kaupunki'],
+                    'municipalitySv': addr['staden'],
+                    'streetFi': addr['katunimi'],
+                    'streetSv': addr['gatan'],
                     'number': number,
                     'unit': None,
                     'location': addr['location'],
@@ -162,10 +162,10 @@ class StreetSearchHandler(AddressSearchHandler):
         in an object under the name "results".
         All non ASCII chars are unicode escaped.
 
-        :>jsonarr string municipality-fi: Municipality name in Finnish
-        :>jsonarr string street-fi: Streetname in Finnish
-        :>jsonarr string municipality-sv: Municipality in Swedish
-        :>jsonarr string street-sv: Streetname in Swedish
+        :>jsonarr string municipalityFi: Municipality name in Finnish
+        :>jsonarr string streetFi: Streetname in Finnish
+        :>jsonarr string municipalitySv: Municipality in Swedish
+        :>jsonarr string streetSv: Streetname in Swedish
         :>jsonarr string number: Either a single integer as string, or "<integer>-<integer>" indicating a range of housenumbers in same address.
         :>jsonarr string unit: Possible letter separating multiple addresses which share the same number
         :>jsonarr latlon_array location: Array of two floats, latitude and longitude in WGS84
@@ -177,20 +177,20 @@ class StreetSearchHandler(AddressSearchHandler):
 
             {"results" : [
                 {
-                    "municipality-fi" : "Helsinki",
-                    "street-fi" : "Ida Aalbergin tie",
-                    "municipality-sv" : "Helsingfors",
-                    "street-sv" : "Ida Aalbergs v\u00e4",
+                    "municipalityFi" : "Helsinki",
+                    "streetFi" : "Ida Aalbergin tie",
+                    "municipalitySv" : "Helsingfors",
+                    "streetSv" : "Ida Aalbergs v\u00e4",
                     "unit" : null,
                     "number" : "1",
                     "location" : [24.9003449796381, 60.2306259161157],
                     "source" : "HRI.fi"
                 },
                 {
-                    "municipality-fi" : "Helsinki",
-                    "street-fi" : "Ida Aalbergin tie",
-                    "municipality-sv" : "Helsingfors",
-                    "street-sv" : "Ida Aalbergs v\u00e4",
+                    "municipalityFi" : "Helsinki",
+                    "streetFi" : "Ida Aalbergin tie",
+                    "municipalitySv" : "Helsingfors",
+                    "streetSv" : "Ida Aalbergs v\u00e4",
                     "unit" : null,
                     "number" : "2",
                     "location" : [24.9015735934518, 60.2301511387295],

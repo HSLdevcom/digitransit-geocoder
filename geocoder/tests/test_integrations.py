@@ -9,10 +9,10 @@ def test_address():
     results = loads(r.text)['results']
     assert len(results) == 1
     assert results[0] == {
-        "municipality-fi": "Helsinki",
-        "municipality-sv": "Helsingfors",
-        "street-sv": "Ida Aalbergs väg",
-        "street-fi": "Ida Aalbergin tie",
+        "municipalityFi": "Helsinki",
+        "municipalitySv": "Helsingfors",
+        "streetSv": "Ida Aalbergs väg",
+        "streetFi": "Ida Aalbergin tie",
         "number": "9",
         "unit": None,
         "location": [24.896918441103022, 60.22986936848425],
@@ -26,10 +26,10 @@ def test_non_latin_address():
     results = loads(r.text)['results']
     assert len(results) == 1
     assert results[0] == {
-        "municipality-fi": "Helsinki",
-        "municipality-sv": "Helsingfors",
-        "street-sv": "Ida Aalbergs väg",
-        "street-fi": "Ida Aalbergin tie",
+        "municipalityFi": "Helsinki",
+        "municipalitySv": "Helsingfors",
+        "streetSv": "Ida Aalbergs väg",
+        "streetFi": "Ida Aalbergin tie",
         "number": "9",
         "unit": None,
         "location": [24.896918441103022, 60.22986936848425],
