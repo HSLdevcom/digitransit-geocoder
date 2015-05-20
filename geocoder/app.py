@@ -121,8 +121,11 @@ class AddressSearchHandler(Handler):
         addresses = {}
         for addr in [x['_source'] for x in data['responses'][1]["hits"]["hits"]]:
             addresses[(addr['municipality'], addr['street'], addr['number'])] = {
-                'municipality': addr['municipality'],
-                'street': addr['street'],
+                # XXX Issue #26, multilingual OSM data
+                'municipality-fi': addr['municipality'],
+                'municipality-sv': addr['municipality'],
+                'street-fi': addr['street'],
+                'street-sv': addr['street'],
                 'number': addr['number'],
                 'unit': addr['unit'],
                 'location': addr['location'],
