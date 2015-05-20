@@ -20,6 +20,23 @@ def test_address():
     }
 
 
+def test_address_from_OSM():
+    r = requests.get('http://localhost:8888/address/Helsinki/Vuorimiehenkatu/3')
+    assert r.status_code == 200
+    results = loads(r.text)['results']
+    assert len(results) == 1
+    assert results[0] == {
+        "municipalityFi": "Helsinki",
+        "municipalitySv": "Helsinki",
+        "streetSv": "Vuorimiehenkatu",
+        "streetFi": "Vuorimiehenkatu",
+        "number": "3",
+        "unit": None,
+        'location': [24.955355600000015, 60.160892999999994],
+        "source": "OSM"
+    }
+
+
 def test_non_latin_address():
     r = requests.get('http://localhost:8888/address/Helsinki/Ida%20Aalbergs%20v%c3%a4g/9')
     assert r.status_code == 200
