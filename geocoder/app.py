@@ -121,8 +121,11 @@ class AddressSearchHandler(Handler):
         addresses = {}
         for addr in [x['_source'] for x in data['responses'][1]["hits"]["hits"]]:
             addresses[(addr['municipality'], addr['street'], addr['number'])] = {
-                'municipality': addr['municipality'],
-                'street': addr['street'],
+                # XXX Issue #26, multilingual OSM data
+                'municipality-fi': addr['municipality'],
+                'municipality-sv': addr['municipality'],
+                'street-fi': addr['street'],
+                'street-sv': addr['street'],
                 'number': addr['number'],
                 'unit': addr['unit'],
                 'location': addr['location'],
@@ -180,7 +183,7 @@ class StreetSearchHandler(AddressSearchHandler):
                     "municipalityFi" : "Helsinki",
                     "streetFi" : "Ida Aalbergin tie",
                     "municipalitySv" : "Helsingfors",
-                    "streetSv" : "Ida Aalbergs v\u00e4",
+                    "streetSv" : "Ida Aalbergs v\u00e4g",
                     "unit" : null,
                     "number" : "1",
                     "location" : [24.9003449796381, 60.2306259161157],
@@ -190,7 +193,7 @@ class StreetSearchHandler(AddressSearchHandler):
                     "municipalityFi" : "Helsinki",
                     "streetFi" : "Ida Aalbergin tie",
                     "municipalitySv" : "Helsingfors",
-                    "streetSv" : "Ida Aalbergs v\u00e4",
+                    "streetSv" : "Ida Aalbergs v\u00e4g",
                     "unit" : null,
                     "number" : "2",
                     "location" : [24.9015735934518, 60.2301511387295],
@@ -255,7 +258,7 @@ class SuggestHandler(Handler):
                      {"key" : "helsingfors",
                       "doc_count" : 2
                  }]},
-                 {"Mannerheimv<E4>gen" : [
+                 {"Mannerheimv\u00e4gen" : [
                      {"doc_count" : 154,
                       "key" : "helsingfors"
              }]}],
