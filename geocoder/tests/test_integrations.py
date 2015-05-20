@@ -49,6 +49,14 @@ def test_street():
     assert len(results) == 156
 
 
+def test_street_order():
+    r = requests.get('http://localhost:8888/street/Helsinki/Opastinsilta')
+    assert r.status_code == 200
+    results = loads(r.text)['results']
+    assert results[0]['number'] == '1'
+    assert results[1]['number'] == '2'
+
+
 def test_not_existing_street():
     r = requests.get('http://localhost:8888/street/Helsinki/Foo%20Bar%20road')
     assert r.status_code == 404

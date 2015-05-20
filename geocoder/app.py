@@ -2,6 +2,7 @@
 # pylint: disable=abstract-method,arguments-differ
 import json
 import logging
+import re
 
 import click
 from jinja2 import Template
@@ -153,7 +154,12 @@ class AddressSearchHandler(Handler):
 
         if not addresses:
             raise HTTPError(404)
-        return {'results': list(addresses.values())}
+
+        def address_key(a):
+            # Use only the first digits in the number, which might be '43a' or '1-3'
+            return int(re.match(r'\d*', a['number']).group())
+
+        return {'results': sorted(list(addresses.values()), key=address_key)}
 
 
 class StreetSearchHandler(AddressSearchHandler):
