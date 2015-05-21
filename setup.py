@@ -106,6 +106,7 @@ setup(
             'mml_municipalities=geocoder.mml_municipalities:main',
             'palvelukartta=geocoder.palvelukartta:main',
             'stops=geocoder.stops:main',
+            'digiroad_stops=geocoder.digiroad_stops:main',
         ],
     },
 )

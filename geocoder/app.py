@@ -248,6 +248,16 @@ class SuggestHandler(Handler):
         '''
         :query string city: Limit the results to within given city. Can be given multiple times to limit within all the cities.
 
+        The stop objects contain all data available from Digiroad,
+        but currently only following fields are specified,
+        as some data is still missing:
+
+        :>jsonarr string stopCode: Stop id that is shown to customers
+        :>jsonarr string nameFi: Name in Finnish
+        :>jsonarr string nameSv: Name in Swedish
+        :>jsonarr string municipalityFi: Municipality name in Finnish
+        :>jsonarr latlon_array location: Array of two floats, latitude and longitude in WGS84
+
         Example response::
 
             {"streetnames_fi" : [
@@ -270,18 +280,38 @@ class SuggestHandler(Handler):
              }]}],
              "fuzzy_streetnames" : [],
              "stops" : [
-                {"stop_name" : "Hesperian puisto",
-                 "stop_desc" : "Mannerheimintie",
-                 "stop_code" : "1909",
-                 "location" : [24.9294653999999, 60.1783596999998],
-                 "zone_id" : "1",
-                 "stop_url" : "http://aikataulut.hsl.fi/pysakit/fi/1130206.html",
-                 "location_type" : "0",
-                 "parent_station" : " ",
-                 "wheelchair_boarding" : "0",
-                 "stop_id" : "1130206"
-                },
-                ...
+                 {
+                     "stopCode" : "H1909",
+                     "nameFi" : "Hesperian puisto",
+                     "nameSv" : "Hesperiaparken",
+                     "municipalityFi" : "Helsinki",
+                     "location" : [24.929263232589, 60.1783826638252],
+                     "address" : "",
+                     "stopDesc" : "",
+                     "BEARING" : "346",
+                     "STOP_ID" : "240363",
+                     "MODIFIED_TIMESTAMP" : "2015-03-18T16:55:30",
+                     "ADMIN_STOP_ID" : "1130206",
+                     "DIRECTION" : "",
+                     "LIVI_ID" : "",
+                     "VALID_TO" : null,
+                     "ADMINISTRATOR_CODE" : "Helsingin seudun liikenne",
+                     "BEARING_DESCRIPTION" : "Pohjoinen",
+                     "REACHABILITY" : "",
+                     "MODIFIED_BY" : "lxronkksa",
+                     "CONTACT_EMAILS" : "",
+                     "NON_STOP_EXPRESS_BUS" : "0",
+                     "ROAD_TYPE" : "2",
+                     "LOCAL_BUS" : "1",
+                     "MUNICIPALITY_CODE" : "91",
+                     "SPECIAL_NEEDS" : "Ei tiedossa",
+                     "ROAD_NUMBER" : "",
+                     "VIRTUAL_STOP" : "0",
+                     "VALID_FROM" : "2014-03-17T00:00:00",
+                     "EQUIPMENT" : "Katos",
+                     "EXPRESS_BUS" : "1"
+                 },
+                 ...
             ]}
 
         If a streetname is found in multiple cities,
@@ -325,10 +355,10 @@ class SuggestHandler(Handler):
               '}},'
               '"aggs": {'
                 '"streets": {'
-                  '"terms": { "field": "katunimi", "size": 20 },'
+                  '"terms": { "field": "katunimi", "size": 200 },'
                   '"aggs": {'
                     '"cities": {'
-                      '"terms": { "field": "kaupunki", "size": 20 }}}}}}\n'
+                      '"terms": { "field": "kaupunki", "size": 200 }}}}}}\n'
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
                 '"filtered": {'
@@ -349,29 +379,40 @@ class SuggestHandler(Handler):
               '}},'
               '"aggs": {'
                 '"streets": {'
-                  '"terms": { "field": "gatan", "size": 20 },'
+                  '"terms": { "field": "gatan", "size": 200 },'
                   '"aggs": {'
                     '"cities": {'
-                      '"terms": { "field": "staden", "size": 20 }}}}}}\n'
+                      '"terms": { "field": "staden", "size": 200 }}}}}}\n'
              # Find correctly written stops from names
-             '{"type": "stop"}\n'
-             '{"size": 20,'
+             '{"type": "digiroad_stop"}\n'
+             '{"size": 200,'
               '"query": {'
                 '"wildcard": {'
-                  '"stop_name": "*{{ search_term.lower() }}*"}}}\n'
+                  '"NAME_FI": "*{{ search_term.lower() }}*"}}}\n'
+             '{"type": "digiroad_stop"}\n'
+             '{"size": 200,'
+              '"query": {'
+                '"wildcard": {'
+                  '"NAME_SV": "*{{ search_term.lower() }}*"}}}\n'
              # Find correctly written stops from descriptions
              # (often crossing street name, or closest address)
-             '{"type": "stop"}\n'
-             '{"size": 20,'
+             '{"type": "digiroad_stop"}\n'
+             '{"size": 200,'
               '"query": {'
                 '"wildcard": {'
-                  '"stop_desc": "*{{ search_term.lower() }}*"}}}\n'
+                  '"COMMENTS": "*{{ search_term.lower() }}*"}}}\n'
              # Find correctly written stop codes
-             '{"type": "stop"}\n'
-             '{"size": 20,'
+             '{"type": "digiroad_stop"}\n'
+             '{"size": 200,'
               '"query": {'
                 '"wildcard": {'
-                  '"stop_code": "*{{ search_term.lower() }}*"}}}\n'
+                  '"STOP_CODE": "*{{ search_term.lower() }}*"}}}\n'
+             # Find stops by address
+             '{"type": "digiroad_stop"}\n'
+             '{"size": 200,'
+              '"query": {'
+                '"wildcard": {'
+                  '"ADDRESS": "*{{ search_term.lower() }}*"}}}\n'
              # Find incorrectly written street names with maximum Levenstein
              # distance of 2 (hardcoded into Elasticsearch)
              # XXX Would be nice if we could do a fuzzy wildcard search...
@@ -382,7 +423,7 @@ class SuggestHandler(Handler):
                 '"fuzzy": {'
                   '"raw": "{{ search_term.lower() }}"}},'
               '"aggs": {'
-                '"streets": {"terms": {"field": "katunimi", "size": 20 }}}}\n'
+                '"streets": {"terms": {"field": "katunimi", "size": 200 }}}}\n'
              '\n',  # ES requires a blank line at the end (not documented)
              **kwargs)
 
@@ -395,9 +436,21 @@ class SuggestHandler(Handler):
         for s in r[1]["aggregations"]["streets"]["buckets"]:
             streetnames_sv.append({s["key"]: s["cities"]["buckets"]})
         stops = {}
-        for s in r[2]["hits"]["hits"] + r[3]["hits"]["hits"] + r[4]["hits"]["hits"]:
-            if s["_id"] not in stops:
-                stops[s["_id"]] = s["_source"]
+        for s in (r[2]["hits"]["hits"] + r[3]["hits"]["hits"] +
+                  r[4]["hits"]["hits"] + r[5]["hits"]["hits"] + r[6]["hits"]["hits"]):
+            if s["_id"] not in stops:  # A stop might match in multiple searches
+                new_stop = s["_source"]
+                # Rename some fields
+                for rename in [('NAME_FI', 'nameFi'),
+                               ('NAME_SV', 'nameSv'),
+                               ('STOP_CODE', 'stopCode'),
+                               ('ADDRESS', 'address'),
+                               ('MUNICIPALITY_NAME', 'municipalityFi'),
+                               ('COMMENTS', 'stopDesc')]:
+                    new_stop[rename[1]] = new_stop[rename[0]]
+                    del new_stop[rename[0]]
+
+                stops[s["_id"]] = new_stop
         return {
             # Address is a single key/value dict, where the streetname is the key.
             # In Python3 it's a bit tricky to get that key:
@@ -407,8 +460,8 @@ class SuggestHandler(Handler):
             'streetnames_sv': sorted(streetnames_sv,
                                      key=lambda x: x.keys().__iter__().__next__()),
             'stops': sorted(list(stops.values()),
-                            key=lambda x: x['stop_name'] + x['stop_desc']),
-            'fuzzy_streetnames': r[5]["aggregations"]["streets"]["buckets"],
+                            key=lambda x: x['nameFi'] + x['stopDesc']),
+            'fuzzy_streetnames': r[7]["aggregations"]["streets"]["buckets"],
         }
 
 

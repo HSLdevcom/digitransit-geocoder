@@ -1,5 +1,6 @@
 from json import loads
 
+import pytest
 import requests
 
 
@@ -178,12 +179,14 @@ def test_suggest_stop_name():
     assert len(loads(r.text)['stops']) == 2
 
 
+# Currently Digiroad data doesn't have descriptions
+@pytest.mark.xfail
 def test_suggest_stop_desc():
     # Pohjantie should only appear in descriptions of stops WeeGee and Kaskenkaataja,
     # not in names
-    r = requests.get('http://localhost:8888/suggest/Pohjantie')
+    r = requests.get('http://localhost:8888/suggest/Itsehallintotie')
     assert r.status_code == 200
-    assert len(loads(r.text)['stops']) == 4
+    assert len(loads(r.text)['stops']) == 1
 
 
 def test_suggest_stop_code():
@@ -191,18 +194,22 @@ def test_suggest_stop_code():
     assert r.status_code == 200
     results = loads(r.text)
     assert len(results['stops']) == 1
-    assert results['stops'][0] == {
-        "stop_url": "http://aikataulut.hsl.fi/pysakit/fi/2118206.html",
-        "location_type": "0",
-        "location": [24.826333500000132, 60.21038490000018],
-        "stop_id": "2118206",
-        "parent_station": " ",
-        "stop_desc": "Itsehallintotie",
-        "stop_name": "Majurinkulma",
-        "zone_id": "2",
-        "wheelchair_boarding": "0",
-        "stop_code": "E1971"
-    }
+    s = results['stops'][0]
+    # Result might contain extra data, but verify what is specified
+    assert s["nameFi"] == "Majurinkulma"
+    assert s["nameSv"] == "Majorshörnet"
+    assert s["stopCode"] == "E1971"
+    assert s["municipalityFi"] == "Espoo"
+
+
+@pytest.mark.xfail
+def test_suggest_missing_data():
+    # Test fields that should be eventually populated,
+    # but are known to be missing at this point
+    r = requests.get('http://localhost:8888/suggest/E1971')
+    s = loads(r.text)['stops'][0]
+    assert s["stopDesc"] == "Itsehallintotie"
+    assert s["address"] == "Majurinkulma 2"
 
 
 def test_suggest_fuzzy_typo_fix():

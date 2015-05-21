@@ -75,6 +75,18 @@ else
     echo -e "\tNo new data available"
 fi
 
+echo "Updating Digiroad stop data..."
+if [[ "$(curl -z /data/digiroad_stops.csv --retry 5 -f http://www.digiroad.fi/Uusi_DR/pysakki/fi_FI/pysakki/_files/91981192877117840/default/digiroad_stops.zip -o digiroad_stops.zip -s -L -w %{http_code})" == "200" ]] &&
+      unzip -DD digiroad_stops.zip &&
+      mv digiroad_stops.csv /data/ &&
+      rm digiroad_stops.zip || [[ $FORCE ]]; then
+    echo "Processing Digiroad data" &&
+    digiroad_stops /data/digiroad_stops.csv
+else
+    echo -e "\tNo new data available"
+fi
+
+
 echo "Updating NLS road data..."
 mkdir -p /data/nls
 pushd /data/nls
