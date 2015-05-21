@@ -97,6 +97,9 @@ def add_address(street, number, location, unit=None, main_entrance=False,
             if geom.contains(p):
                 municipality = name
                 break
+    # The number includes the divisor char, which should be lower case
+    # but is irregularly normalized in OSM data
+    number = number.lower()
     address = (municipality, street, number, unit)
     if address in all_addresses:
         if main_entrance:

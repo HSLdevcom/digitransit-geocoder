@@ -21,6 +21,13 @@ def test_address():
     }
 
 
+def test_address_with_divisor_char():
+    r = requests.get('http://localhost:8888/address/Helsinki/Opastinsilta/6a')
+    assert r.status_code == 200
+    results = loads(r.text)['results']
+    assert len(results) == 1
+
+
 def test_address_from_OSM():
     r = requests.get('http://localhost:8888/address/Helsinki/Vuorimiehenkatu/3')
     assert r.status_code == 200
@@ -64,15 +71,18 @@ def test_street():
     r = requests.get('http://localhost:8888/street/Helsinki/Mannerheimintie')
     assert r.status_code == 200
     results = loads(r.text)['results']
-    assert len(results) == 156
+    assert len(results) == 161
 
 
 def test_street_order():
     r = requests.get('http://localhost:8888/street/Helsinki/Opastinsilta')
     assert r.status_code == 200
     results = loads(r.text)['results']
-    assert results[0]['number'] == '1'
-    assert results[1]['number'] == '2'
+    assert ', '.join((results[0]['number'],
+                      results[1]['number'],
+                      results[7]['number'],
+                      results[8]['number'],
+                      results[9]['number'])) == '1, 2, 8, 8a, 8b'
 
 
 def test_not_existing_street():

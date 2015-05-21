@@ -83,6 +83,9 @@ class AddressSearchHandler(Handler):
         The response format is identical to the street search endpoint,
         except that the array contains only one element.
         '''
+        number, divisor = re.match(r'(\d+)(\D*)', kwargs['streetnumber']).groups()
+        kwargs['number'] = number
+        kwargs['divisor'] = divisor
         super().get(
             # noqa
             url="_msearch",
@@ -100,10 +103,15 @@ class AddressSearchHandler(Handler):
                                          '{"term": {"katunimi.raw": "{{ streetname.lower() }}"}},'
                                          '{"term": {"gatan.raw": "{{ streetname.lower() }}"}}'
                                        ']},'
+                                       '{% if divisor %}'
+                                       '{"term": {"osoitenumero": "{{ number }}"}},'
+                                       '{"term": {"kiinteiston_jakokirjain": "{{ divisor }}"}}'
+                                       '{% else %}'
                                        '{"range": {'
                                          '"osoitenumero": {"lte": {{ streetnumber }} }}},'
                                        '{"range": {'
                                          '"osoitenumero2": {"gte" : {{ streetnumber }} }}}'
+                                       '{% endif %}'
                             ']}}}}}\n'
                             '{"type": "osm_address"}\n'
                             '{"query": {'
@@ -113,7 +121,7 @@ class AddressSearchHandler(Handler):
                                      '"must" : ['
                                        '{"term": { "municipality": "{{ city.lower() }}"}},'
                                        '{"term": { "street": "{{ streetname.title() }}"}},'  # XXX Title case doesn't work for "Ida Aalbergin tie"
-                                       '{"term": { "number": {{ streetnumber }} }}'
+                                       '{"term": { "number": "{{ streetnumber }}" }}'
                             ']}}}}}\n'
                             '\n',
             **kwargs)
@@ -134,7 +142,7 @@ class AddressSearchHandler(Handler):
             }
         for addr in [x['_source'] for x in data['responses'][0]["hits"]["hits"]]:
             if addr['osoitenumero'] == addr['osoitenumero2']:
-                number = str(addr['osoitenumero'])
+                number = str(addr['osoitenumero']) + addr['kiinteiston_jakokirjain']
             else:
                 number = str(addr['osoitenumero']) + '-' + str(addr['osoitenumero2'])
             id = (addr['kaupunki'], addr['katunimi'], number)
@@ -156,8 +164,8 @@ class AddressSearchHandler(Handler):
             raise HTTPError(404)
 
         def address_key(a):
-            # Use only the first digits in the number, which might be '43a' or '1-3'
-            return int(re.match(r'\d*', a['number']).group())
+            number, divisor = re.match(r'(\d+)(\D*)', a['number']).groups()
+            return (int(number), divisor)
 
         return {'results': sorted(list(addresses.values()), key=address_key)}
 
