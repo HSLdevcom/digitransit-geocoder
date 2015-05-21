@@ -179,6 +179,15 @@ def test_suggest_stop_name():
     assert len(loads(r.text)['stops']) == 2
 
 
+def test_suggest_stop_name_with_filter():
+    r = requests.get('http://localhost:8888/suggest/Pohjantie')
+    assert r.status_code == 200
+    assert len(loads(r.text)['stops']) == 178
+    r = requests.get('http://localhost:8888/suggest/Pohjantie?city=Parikkala')
+    assert r.status_code == 200
+    assert len(loads(r.text)['stops']) == 4
+
+
 # Currently Digiroad data doesn't have descriptions
 @pytest.mark.xfail
 def test_suggest_stop_desc():
