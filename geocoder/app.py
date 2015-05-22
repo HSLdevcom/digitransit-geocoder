@@ -86,6 +86,13 @@ class AddressSearchHandler(Handler):
         number, divisor = re.match(r'(\d+)(\D*)', kwargs['streetnumber']).groups()
         kwargs['number'] = number
         kwargs['divisor'] = divisor
+
+        # In Finland, when looking from the beginning of a street to end,
+        # right side always has odd and left side even numbers
+        if int(number) % 2 == 0:
+            kwargs['left_side'] = 'true'
+        else:
+            kwargs['left_side'] = 'false'
         super().get(
             # noqa
             url="_msearch",
@@ -110,7 +117,8 @@ class AddressSearchHandler(Handler):
                                        '{"range": {'
                                          '"osoitenumero": {"lte": {{ streetnumber }} }}},'
                                        '{"range": {'
-                                         '"osoitenumero2": {"gte" : {{ streetnumber }} }}}'
+                                         '"osoitenumero2": {"gte" : {{ streetnumber }} }}},'
+                                         '{"term": {"left_side": "{{ left_side }}" }}'
                                        '{% endif %}'
                             ']}}}}}\n'
                             '{"type": "osm_address"}\n'

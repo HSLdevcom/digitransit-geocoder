@@ -21,6 +21,14 @@ def test_address():
     }
 
 
+def test_address_range():
+    # Make sure Virsutie 4-6 is not found, since it's on the other side of the road
+    r = requests.get('http://localhost:8888/address/Vantaa/Virsutie/5')
+    assert r.status_code == 200
+    results = loads(r.text)['results']
+    assert len(results) == 1
+
+
 def test_address_with_divisor_char():
     r = requests.get('http://localhost:8888/address/Helsinki/Opastinsilta/6a')
     assert r.status_code == 200
@@ -106,7 +114,8 @@ def test_reverse_address():
         "gatan": "Västra Prästgatan",
         "kiinteiston_jakokirjain": "",
         "kaupunki": "Helsinki",
-        "osoitenumero2": 1
+        "osoitenumero2": 1,
+        "left_side": False
     }
 
 

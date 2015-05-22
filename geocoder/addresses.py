@@ -59,6 +59,12 @@ def documents(csvfile):  # Elasticsearch calls records documents
             line['osoitenumero2'] = int(line['osoitenumero2'])
         else:
             line['osoitenumero2'] = int(line['osoitenumero'])
+
+        if line['osoitenumero'] % 2 == 0:
+            line['left_side'] = True
+        else:
+            line['left_side'] = False
+
         yield ES.index_op(line)
 
 
@@ -79,6 +85,7 @@ def main(cvsfilename):
                      "gatan": street_mapping,
                      "osoitenumero": {"type": "long"},
                      "osoitenumero2": {"type": "long"},
+                     "left_side": {"type": "boolean"},
                  }}), ))
 
     with open(cvsfilename, encoding='latin-1') as file:
