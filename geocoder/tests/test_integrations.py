@@ -105,16 +105,16 @@ def test_reverse_city():
 
 
 def test_reverse_address():
-    r = requests.get('http://localhost:8888/reverse/60.1841593,24.9494081')
+    r = requests.get('http://localhost:8888/reverse/60.17586,24.93369')
     assert loads(r.text) == {
-        "katunimi": "Läntinen Papinkatu",
-        "osoitenumero": 1,
-        "staden": "Helsingfors",
-        "location": [24.949359889140478, 60.184143202636754],
-        "gatan": "Västra Prästgatan",
-        "kiinteiston_jakokirjain": "",
         "kaupunki": "Helsinki",
-        "osoitenumero2": 1,
+        "staden": "Helsingfors",
+        'katunimi': 'Mannerheimintie',
+        'gatan': 'Mannerheimvägen',
+        'osoitenumero': 13,
+        'osoitenumero2': 13,
+        'kiinteiston_jakokirjain': 'e',
+        'location': [24.933391048464603, 60.176174938020075],
         "left_side": False
     }
 
