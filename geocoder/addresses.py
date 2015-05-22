@@ -52,9 +52,11 @@ def documents(csvfile):  # Elasticsearch calls records documents
         if line['osoitenumero']:
             line['osoitenumero'] = int(line['osoitenumero'])
         else:
-            logging.warning("No streetnumber:")
-            logging.warning(line)
-            continue
+            # The database uses both empty values and 0 for meaning addresses
+            # with no number part. Normalize to 0.
+            logging.info("No streetnumber:")
+            logging.info(line)
+            line['osoitenumero'] = 0
         if line['osoitenumero2']:
             line['osoitenumero2'] = int(line['osoitenumero2'])
         else:
