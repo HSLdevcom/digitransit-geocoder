@@ -704,14 +704,14 @@ class InterpolateHandler(Handler):
 
 def make_app(settings={}, path='../docs/_build/html/'):
     return Application(
-        [URLSpec(r"/suggest/(?P<search_term>[\w\-%]*)",
+        [URLSpec(r"/suggest/(?P<search_term>[\w\-%()\.']*)",
                  SuggestHandler),
          # The URL regexps are searched in order, so more specific URLs must come first
-         URLSpec(r"/address/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%()\.]*)/(?P<streetnumber>[\w\-%]*)",
+         URLSpec(r"/address/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%()\.']*)/(?P<streetnumber>[\w\-%]*)",
                  AddressSearchHandler),
-         URLSpec(r"/street/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%()\.]*)",
+         URLSpec(r"/street/(?P<city>[\w\-%]*)/(?P<streetname>[\w\-%()\.']*)",
                  StreetSearchHandler),
-         URLSpec(r"/interpolate/(?P<streetname>[\w\-%]*)/(?P<streetnumber>[\w\-%]*)",
+         URLSpec(r"/interpolate/(?P<streetname>[\w\-%()\.']*)/(?P<streetnumber>[\w\-%]*)",
                  InterpolateHandler),
          URLSpec(r"/reverse/(?P<lat>\d+\.\d+),(?P<lon>\d+\.\d+)",
                  ReverseHandler),
