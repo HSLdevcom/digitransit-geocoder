@@ -98,6 +98,13 @@ def test_not_existing_street():
     assert r.status_code == 404
 
 
+def test_area_as_street():
+    r = requests.get('http://localhost:8888/street/Helsinki/Roihuvuori%20(kaup.osa)')
+    assert r.status_code == 200
+    results = loads(r.text)['results']
+    assert len(results) == 1
+
+
 def test_reverse_city():
     r = requests.get('http://localhost:8888/reverse/60.1841593,24.9494081?city')
     #  The city includes boundaries data which is quite long, so just check the name
