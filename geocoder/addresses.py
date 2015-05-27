@@ -76,7 +76,7 @@ def main(cvsfilename):
     street_mapping = {"type": "string",
                       "analyzer": "keyword",
                       "fields": {
-                          "raw": {
+                          "lower": {
                               "type": "string",
                               "analyzer": "myAnalyzer"}}}
     prepare_es(((DOCTYPE,
@@ -85,6 +85,8 @@ def main(cvsfilename):
                          "type": "geo_point"},
                      "katunimi": street_mapping,
                      "gatan": street_mapping,
+                     "kaupunki": street_mapping,
+                     "staden": street_mapping,
                      "osoitenumero": {"type": "long"},
                      "osoitenumero2": {"type": "long"},
                      "left_side": {"type": "boolean"},

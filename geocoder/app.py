@@ -103,12 +103,12 @@ class AddressSearchHandler(Handler):
                                    '"bool" : {'
                                      '"must" : ['
                                        '{or: ['
-                                         '{"term": {"kaupunki": "{{ city.lower() }}"}},'
-                                         '{"term": {"staden": "{{ city.lower() }}"}}'
+                                         '{"term": {"kaupunki.lower": "{{ city.lower() }}"}},'
+                                         '{"term": {"staden.lower": "{{ city.lower() }}"}}'
                                        ']},'
                                        '{or: ['
-                                         '{"term": {"katunimi.raw": "{{ streetname.lower() }}"}},'
-                                         '{"term": {"gatan.raw": "{{ streetname.lower() }}"}}'
+                                         '{"term": {"katunimi.lower": "{{ streetname.lower() }}"}},'
+                                         '{"term": {"gatan.lower": "{{ streetname.lower() }}"}}'
                                        ']},'
                                        '{% if divisor %}'
                                        '{"term": {"osoitenumero": "{{ number }}"}},'
@@ -235,12 +235,12 @@ class StreetSearchHandler(AddressSearchHandler):
                                    '"bool" : {'
                                      '"must" : ['
                                        '{or: ['
-                                         '{"term": {"kaupunki": "{{ city.lower() }}"}},'
-                                         '{"term": {"staden": "{{ city.lower() }}"}}'
+                                         '{"term": {"kaupunki.lower": "{{ city.lower() }}"}},'
+                                         '{"term": {"staden.lower": "{{ city.lower() }}"}}'
                                        ']},'
                                        '{or: ['
-                                         '{"term": {"katunimi.raw": "{{ streetname.lower() }}"}},'
-                                         '{"term": {"gatan.raw": "{{ streetname.lower() }}"}}'
+                                         '{"term": {"katunimi.lower": "{{ streetname.lower() }}"}},'
+                                         '{"term": {"gatan.lower": "{{ streetname.lower() }}"}}'
                                        ']}'
                             ']}}}}}\n'
                             '{"type": "osm_address"}\n'
@@ -278,21 +278,21 @@ class SuggestHandler(Handler):
 
             {"streetnames_fi" : [
                 {"Mannerheiminaukio" : [
-                    {"key" : "helsinki",
+                    {"key" : "Helsinki",
                      "doc_count" : 2
                 }]},
                 {"Mannerheimintie" : [
-                    {"key" : "helsinki",
+                    {"key" : "Helsinki",
                      "doc_count" : 154
              }]}],
              "streetnames_sv" : [
                  {"Mannerheimplatsen" : [
-                     {"key" : "helsingfors",
+                     {"key" : "Helsingfors",
                       "doc_count" : 2
                  }]},
                  {"Mannerheimv\u00e4gen" : [
                      {"doc_count" : 154,
-                      "key" : "helsingfors"
+                      "key" : "Helsingfors"
              }]}],
              "fuzzy_streetnames" : [],
              "stops" : [
@@ -336,9 +336,9 @@ class SuggestHandler(Handler):
             "streetnames_fi" : [
                 {"Tietotie" : [
                     {"doc_count" : 10,
-                     "key" : "vantaa"
+                     "key" : "Vantaa"
                     },
-                    {"key" : "espoo",
+                    {"key" : "Espoo",
                      "doc_count" : 6
             }]}],
         '''
@@ -356,14 +356,14 @@ class SuggestHandler(Handler):
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
-                     '"katunimi.raw": "*{{ search_term.lower() }}*"}'
+                     '"katunimi.lower": "*{{ search_term.lower() }}*"}'
                   '}'
                   '{% if cities %}'
                   ',"filter": {'
                     'or: ['
                     '{% for city in cities %}'
-                      '{"term": {"kaupunki": "{{ city.lower() }}"}},'
-                      '{"term": {"staden": "{{ city.lower() }}"}}'
+                      '{"term": {"kaupunki.lower": "{{ city.lower() }}"}},'
+                      '{"term": {"staden.lower": "{{ city.lower() }}"}}'
                       '{% if not loop.last %},{% endif %}'
                     '{% endfor %}'
                     ']}'
@@ -380,14 +380,14 @@ class SuggestHandler(Handler):
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
-                     '"gatan.raw": "*{{ search_term.lower() }}*"}'
+                     '"gatan.lower": "*{{ search_term.lower() }}*"}'
                   '}'
                   '{% if cities %}'
                   ',"filter": {'
                     'or: ['
                     '{% for city in cities %}'
-                      '{"term": {"kaupunki": "{{ city.lower() }}"}},'
-                      '{"term": {"staden": "{{ city.lower() }}"}}'
+                      '{"term": {"kaupunki.lower": "{{ city.lower() }}"}},'
+                      '{"term": {"staden.lower": "{{ city.lower() }}"}}'
                       '{% if not loop.last %},{% endif %}'
                     '{% endfor %}'
                     ']}'
@@ -497,7 +497,7 @@ class SuggestHandler(Handler):
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
                 '"fuzzy": {'
-                  '"raw": "{{ search_term.lower() }}"}},'
+                  '"lower": "{{ search_term.lower() }}"}},'
               '"aggs": {'
                 '"streets": {"terms": {"field": "katunimi", "size": 200 }}}}\n'
              '\n',  # ES requires a blank line at the end (not documented)

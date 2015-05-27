@@ -151,9 +151,9 @@ def test_suggest_streetname():
     assert len(results['streetnames_fi'][0]['Tietotie']) == 2
     # asserting lists takes order into account, but we don't care about it
     # so we just check that both results are in the list
-    assert {"key": "vantaa", "doc_count": 10} \
+    assert {"key": "Vantaa", "doc_count": 10} \
         in results['streetnames_fi'][0]['Tietotie']
-    assert {"key": "espoo", "doc_count": 6} \
+    assert {"key": "Espoo", "doc_count": 6} \
         in results['streetnames_fi'][0]['Tietotie']
 
 
@@ -165,7 +165,7 @@ def test_suggest_streetname_with_filter():
     assert len(results['streetnames_fi']) == 1
     assert len(results['streetnames_fi'][0]['Tietotie']) == 1
     assert results['streetnames_fi'][0]['Tietotie'][0] == \
-        {"key": "espoo", "doc_count": 6}
+        {"key": "Espoo", "doc_count": 6}
 
 
 def test_suggest_swedish_streetname_with_filter():
@@ -177,7 +177,7 @@ def test_suggest_swedish_streetname_with_filter():
     assert len(results['streetnames_sv']) == 1
     assert len(results['streetnames_sv'][0]['Datavägen']) == 1
     assert results['streetnames_sv'][0]['Datavägen'][0] == \
-        {"key": "esbo", "doc_count": 6}
+        {"key": "Esbo", "doc_count": 6}
 
 
 def test_suggest_streetname_with_filter_2():
@@ -214,7 +214,6 @@ def test_suggest_stop_name_with_filter():
     assert len(loads(r.text)['stops']) == 4
 
 
-# Currently Digiroad data doesn't have descriptions
 @pytest.mark.xfail
 def test_suggest_stop_desc():
     # Pohjantie should only appear in descriptions of stops WeeGee and Kaskenkaataja,
