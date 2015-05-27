@@ -497,7 +497,7 @@ class SuggestHandler(Handler):
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
                 '"fuzzy": {'
-                  '"lower": "{{ search_term.lower() }}"}},'
+                  '"katunimi.lower": "{{ search_term.lower() }}"}},'
               '"aggs": {'
                 '"streets": {"terms": {"field": "katunimi", "size": 200 }}}}\n'
              '\n',  # ES requires a blank line at the end (not documented)

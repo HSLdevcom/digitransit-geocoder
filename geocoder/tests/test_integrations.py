@@ -247,7 +247,17 @@ def test_suggest_missing_data():
 
 
 def test_suggest_fuzzy_typo_fix():
+    # typo "rh" to "hr"
     r = requests.get('http://localhost:8888/suggest/Mannehreimintie')
+    assert r.status_code == 200
+    results = loads(r.text)
+    assert len(results['fuzzy_streetnames']) == 1
+
+
+@pytest.mark.xfail
+def test_suggest_fuzzy_typo_fix_swedish():
+    # typo "rh" to "hr"
+    r = requests.get('http://localhost:8888/suggest/Mannehreimv%c3%a4gen')
     assert r.status_code == 200
     results = loads(r.text)
     assert len(results['fuzzy_streetnames']) == 1
