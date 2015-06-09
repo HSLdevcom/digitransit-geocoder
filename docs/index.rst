@@ -1,4 +1,4 @@
-Smart Transit Platform Geocoder
+Digitransit Geocoder
 ===============================
 
 .. autotornado:: geocoder.app:app
