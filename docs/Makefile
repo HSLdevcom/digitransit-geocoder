@@ -85,17 +85,17 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/SmartTransitPlatformGeocoder.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/DigitransitGeocoder.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/SmartTransitPlatformGeocoder.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/DigitransitGeocoder.qhc"
 
 devhelp:
 	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
 	@echo
 	@echo "Build finished."
 	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/SmartTransitPlatformGeocoder"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/SmartTransitPlatformGeocoder"
+	@echo "# mkdir -p $$HOME/.local/share/devhelp/DigitransitGeocoder"
+	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/DigitransitGeocoder"
 	@echo "# devhelp"
 
 epub:
