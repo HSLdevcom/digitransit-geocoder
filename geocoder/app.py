@@ -22,7 +22,7 @@ def finish_request(handler):
         handler.set_header('Access-Control-Allow-Origin', handler.request.headers['Origin'])
     else:
         handler.set_header('Access-Control-Allow-Origin', '*')
-    handler.set_header('Content-Type', 'application/json; charset="utf-8"')
+    handler.set_header('Content-Type', 'application/json')
     handler.finish()
 
 
