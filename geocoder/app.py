@@ -228,7 +228,7 @@ class StreetSearchHandler(AddressSearchHandler):
             # noqa
             url="_msearch",
             template_string='{"type": "address"}\n'
-                            '{"size": 2000,'
+                            '{"size": 10,'
                              '"query": {'
                                '"filtered": {'
                                  '"filter": {'
@@ -244,7 +244,7 @@ class StreetSearchHandler(AddressSearchHandler):
                                        ']}'
                             ']}}}}}\n'
                             '{"type": "osm_address"}\n'
-                            '{"size": 2000,'
+                            '{"size": 10,'
                              '"query": {'
                                '"filtered": {'
                                  '"filter": {'
@@ -371,10 +371,10 @@ class SuggestHandler(Handler):
               '}},'
               '"aggs": {'
                 '"streets": {'
-                  '"terms": { "field": "katunimi", "size": 200 },'
+                  '"terms": { "field": "katunimi", "size": 10 },'
                   '"aggs": {'
                     '"cities": {'
-                      '"terms": { "field": "kaupunki", "size": 200 }}}}}}\n'
+                      '"terms": { "field": "kaupunki", "size": 10 }}}}}}\n'
              '{"search_type" : "count", "type": "address"}\n'
              '{"query": {'
                 '"filtered": {'
@@ -395,13 +395,13 @@ class SuggestHandler(Handler):
               '}},'
               '"aggs": {'
                 '"streets": {'
-                  '"terms": { "field": "gatan", "size": 200 },'
+                  '"terms": { "field": "gatan", "size": 10 },'
                   '"aggs": {'
                     '"cities": {'
-                      '"terms": { "field": "staden", "size": 200 }}}}}}\n'
+                      '"terms": { "field": "staden", "size": 10 }}}}}}\n'
              # Find correctly written stops from names
              '{"type": "digiroad_stop"}\n'
-             '{"size": 200, "query": {'
+             '{"size": 10, "query": {'
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
@@ -418,7 +418,7 @@ class SuggestHandler(Handler):
                 '{% endif %}'
                 '}}}\n'
              '{"type": "digiroad_stop"}\n'
-             '{"size": 200, "query": {'
+             '{"size": 10, "query": {'
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
@@ -437,7 +437,7 @@ class SuggestHandler(Handler):
              # Find correctly written stops from descriptions
              # (often crossing street name, or closest address)
              '{"type": "digiroad_stop"}\n'
-             '{"size": 200, "query": {'
+             '{"size": 10, "query": {'
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
@@ -455,7 +455,7 @@ class SuggestHandler(Handler):
                 '}}}\n'
              # Find correctly written stop codes
              '{"type": "digiroad_stop"}\n'
-             '{"size": 200, "query": {'
+             '{"size": 10, "query": {'
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
@@ -473,7 +473,7 @@ class SuggestHandler(Handler):
                 '}}}\n'
              # Find stops by address
              '{"type": "digiroad_stop"}\n'
-             '{"size": 200, "query": {'
+             '{"size": 10, "query": {'
                 '"filtered": {'
                  '"query": {'
                    '"wildcard": {'
@@ -499,7 +499,7 @@ class SuggestHandler(Handler):
                 '"fuzzy": {'
                   '"katunimi.lower": "{{ search_term.lower() }}"}},'
               '"aggs": {'
-                '"streets": {"terms": {"field": "katunimi", "size": 200 }}}}\n'
+                '"streets": {"terms": {"field": "katunimi", "size": 10 }}}}\n'
              '\n',  # ES requires a blank line at the end (not documented)
              **kwargs)
 
@@ -668,7 +668,7 @@ class InterpolateHandler(Handler):
             self.side = "vasen"
         else:
             self.side = "oikea"
-        url = "interpolated_address/_search?pretty&size=20"
+        url = "interpolated_address/_search?pretty&size=10"
         template = Template('''{
                  "query": { "filtered": {
                      "filter": {
